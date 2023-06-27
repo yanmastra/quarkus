@@ -1,0 +1,7 @@
+**/.DS_Store
+**/.idea
+**/.vscode
+**/target
+**/**.env
+**/docker_env.sh
+**/**.zip
