@@ -1,15 +1,13 @@
-package org.acme;
+package org.acme.crudReactiveHibernate;
 
 import io.quarkus.hibernate.reactive.panache.common.WithSession;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.panache.common.Sort;
 import io.smallrye.mutiny.Uni;
-import io.vertx.ext.web.handler.HttpException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.core.Response;
-import org.acme.dao.User;
-import org.acme.data.UserRepository;
+import org.acme.crudReactiveHibernate.dao.User;
+import org.acme.crudReactiveHibernate.data.UserRepository;
 import org.jboss.logging.Logger;
 
 import java.util.List;
@@ -24,11 +22,8 @@ public class UserService {
     Logger logger;
 
     @WithTransaction
-    public Uni<Response> saveUser(User user) {
-        return userRepository.createUser(user.toDto()).onItem().transform(r -> {
-            User dUser = User.fromDto(r);
-            return Response.status(Response.Status.CREATED).entity(dUser).build();
-                }).onFailure().transform(throwable -> new HttpException(500, throwable.getMessage()));
+    public Uni<User> saveUser(User user) {
+        return userRepository.createUser(user.toDto()).onItem().transform(User::fromDto);
     }
 
     @WithSession
