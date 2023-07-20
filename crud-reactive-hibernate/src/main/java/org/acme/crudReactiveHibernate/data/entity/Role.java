@@ -1,10 +1,11 @@
 package org.acme.crudReactiveHibernate.data.entity;
 
 import io.netty.util.internal.StringUtil;
-import jakarta.persistence.*;
+import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import org.hibernate.annotations.*;
 
 import java.io.Serializable;
@@ -22,7 +23,7 @@ import java.util.Set;
 @SQLDelete(sql = "UPDATE user SET deleted_at=NOW() WHERE id=?")
 @FilterDef(name = "deletedRoleFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
 @Filter(name = "deletedRoleFilter", condition = "deleted_at is null = :isDeleted")
-public class Role implements Serializable {
+public class Role extends PanacheEntityBase implements Serializable {
     @EmbeddedId
     private RoleId id;
     @Column(length = 72, nullable = false)
@@ -30,8 +31,8 @@ public class Role implements Serializable {
     @Column(length = 128)
     private String description;
 
-    @OneToMany(mappedBy = "id.role", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<RolePermission> permissions = null;
+    @OneToMany(mappedBy = "id.role", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private Set<RolePermission> permissions = new HashSet<>();
 
     @CreationTimestamp
     @Temporal(TemporalType.TIMESTAMP)
@@ -75,8 +76,6 @@ public class Role implements Serializable {
     private void validateData() {
         if (!StringUtil.isNullOrEmpty(getId().getAppCode())) {
             for (RolePermission rp: permissions) {
-                if (!StringUtil.isNullOrEmpty(rp.getPermission().getAppCode()))
-                    rp.getPermission().setAppCode(getId().getAppCode());
                 if (!StringUtil.isNullOrEmpty(rp.getRole().getId().getAppCode()))
                     rp.getRole().getId().setAppCode(getId().getAppCode());
             }

@@ -1,5 +1,6 @@
 package org.acme.crudReactiveHibernate.data.entity;
 
+import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -8,7 +9,7 @@ import java.io.Serializable;
 
 @Entity
 @Table(name = "user_role")
-public class UserRole implements Serializable {
+public class UserRole extends PanacheEntityBase implements Serializable {
     @EmbeddedId
     private final UserRoleId id;
 

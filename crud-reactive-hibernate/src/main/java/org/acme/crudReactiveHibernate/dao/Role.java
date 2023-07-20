@@ -2,13 +2,11 @@ package org.acme.crudReactiveHibernate.dao;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.acme.crudReactiveHibernate.data.entity.RoleId;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Date;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Role {
+public abstract class Role {
     @JsonProperty("app_code")
     private String appCode;
     @JsonProperty("code")
@@ -18,8 +16,18 @@ public class Role {
     @JsonProperty("description")
     private String description;
 
-    @JsonProperty("permission")
-    private List<Permission> permissions;
+    @JsonProperty("created_at")
+    private Date createdAt;
+    @JsonProperty("created_by")
+    private String createdBy;
+    @JsonProperty("updated_at")
+    private Date updatedAt;
+    @JsonProperty("updated_by")
+    private String updatedBy;
+    @JsonProperty("deleted_at")
+    private Date deletedAt;
+    @JsonProperty("deleted_by")
+    private String deletedBy;
 
     public Role() {
     }
@@ -31,25 +39,7 @@ public class Role {
         this.description = description;
     }
 
-    public static Role fromDTO(org.acme.crudReactiveHibernate.data.entity.Role dto) {
-        return new Role(dto.getId().getCode(), dto.getId().getAppCode(), dto.getName(), dto.getDescription());
-    }
-
-    public org.acme.crudReactiveHibernate.data.entity.Role toDTO() {
-        org.acme.crudReactiveHibernate.data.entity.Role dRole = new org.acme.crudReactiveHibernate.data.entity.Role(new RoleId(appCode, code), name, description);
-        if (this.permissions != null)
-            for (Permission permission: this.permissions) {
-                dRole.addPermission(permission.toDTO());
-            }
-        return dRole;
-    }
-
-    public void addPermission(Permission permission) {
-        if (permissions == null) permissions = new ArrayList<>();
-        if (!permissions.contains(permission))
-            permissions.remove(permission);
-        permissions.add(permission);
-    }
+    public abstract org.acme.crudReactiveHibernate.data.entity.Role toDto();
 
     public String getCode() {
         return code;
@@ -75,19 +65,59 @@ public class Role {
         this.description = description;
     }
 
-    public List<Permission> getPermissions() {
-        return permissions;
-    }
-
-    public void setPermissions(List<Permission> permissions) {
-        this.permissions = permissions;
-    }
-
     public String getAppCode() {
         return appCode;
     }
 
     public void setAppCode(String appCode) {
         this.appCode = appCode;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Date updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public Date getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Date deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public void setDeletedBy(String deletedBy) {
+        this.deletedBy = deletedBy;
     }
 }

@@ -22,19 +22,22 @@ import java.util.UUID;
         }
 )
 @SQLDelete(sql = "UPDATE user SET deleted_at=NOW() WHERE id=?")
+@SQLSelect(sql = "SELECT id, username, email, name, createdAt, createdBy, updatedAt, updatedBy, deletedAt, deletedBy FROM user")
 @FilterDef(name = "deletedUserFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
 @Filter(name = "deletedUserFilter", condition = "deleted_at is null = :isDeleted")
 public class User extends PanacheEntityBase implements Serializable {
     @Id
-    @Column(length = 36, updatable = false)
+    @Column(length = 40, updatable = false)
     private String id;
     @Column(length = 64, unique = true, nullable = false)
     private String username;
     @Column(length = 64, unique = true)
     private String email;
     private String password;
+    @Column(length = 218)
+    private String name;
 
-    @OneToMany(mappedBy = "id.user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "id.user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<UserRole> roles = null;
 
     @CreationTimestamp
@@ -77,11 +80,11 @@ public class User extends PanacheEntityBase implements Serializable {
     public User() {
     }
 
-    public User(String id, String username, String email, String password) {
+    public User(String id, String username, String email, String name) {
         this.id = id;
         this.username = username;
         this.email = email;
-        this.password = password;
+        this.name = name;
     }
 
     public void addRole(Role role) {
@@ -123,6 +126,7 @@ public class User extends PanacheEntityBase implements Serializable {
     }
 
     public Set<UserRole> getRoles() {
+        if (roles == null) roles = new HashSet<>();
         return roles;
     }
 
@@ -176,5 +180,13 @@ public class User extends PanacheEntityBase implements Serializable {
 
     public void setDeletedBy(String deletedBy) {
         this.deletedBy = deletedBy;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

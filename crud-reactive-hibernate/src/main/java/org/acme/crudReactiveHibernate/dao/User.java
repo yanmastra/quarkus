@@ -1,57 +1,44 @@
 package org.acme.crudReactiveHibernate.dao;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Date;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class User implements Serializable {
+public abstract class User implements Serializable {
     @JsonProperty("id")
     private String id;
     @JsonProperty("username")
     private String username;
-    @JsonProperty("password")
-    private String password;
     @JsonProperty("email")
     private String email;
+    @JsonProperty("name")
+    private String name;
+    @JsonProperty("created_at")
+    private Date createdAt;
+    @JsonProperty("created_by")
+    private String createdBy;
+    @JsonProperty("updated_at")
+    private Date updatedAt;
+    @JsonProperty("updated_by")
+    private String updatedBy;
+    @JsonProperty("deleted_at")
+    private Date deletedAt;
+    @JsonProperty("deleted_by")
+    private String deletedBy;
 
-    @JsonProperty("roles")
-    private List<Role> roles;
-
-    @JsonIgnore
-    public org.acme.crudReactiveHibernate.data.entity.User toDto() {
-        org.acme.crudReactiveHibernate.data.entity.User user = new org.acme.crudReactiveHibernate.data.entity.User(id, username, email, password);
-        if (roles != null) {
-            for (Role role: roles) {
-                user.addRole(role.toDTO());
-            }
-        }
-        return user;
-    }
-
-    public static User fromDto(org.acme.crudReactiveHibernate.data.entity.User user) {
-        User nUser = new User(user.getId(), user.getUsername(), user.getPassword(), user.getEmail());
-        if (user.getRoles() != null) {
-            nUser.roles = new ArrayList<>();
-            for (org.acme.crudReactiveHibernate.data.entity.UserRole ur: user.getRoles()) {
-                nUser.roles.add(Role.fromDTO(ur.getRole()));
-            }
-        }
-        return nUser;
-    }
+    public abstract org.acme.crudReactiveHibernate.data.entity.User toDto();
 
     public User() {
     }
 
-    public User(String id, String username, String password, String email) {
+    public User(String id, String username, String email, String name) {
         this.id = id;
         this.username = username;
-        this.password = password;
         this.email = email;
+        this.name = name;
     }
 
     public String getId() {
@@ -70,19 +57,67 @@ public class User implements Serializable {
         this.username = username;
     }
 
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
     public String getEmail() {
         return email;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Date updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+
+    public Date getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Date deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public void setDeletedBy(String deletedBy) {
+        this.deletedBy = deletedBy;
     }
 }

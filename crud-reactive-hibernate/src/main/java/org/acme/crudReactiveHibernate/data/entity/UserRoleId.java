@@ -5,11 +5,11 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @Embeddable
 public class UserRoleId {
-    @ManyToOne(cascade = CascadeType.MERGE)
+    @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     private User user;
 
-    @ManyToOne(cascade = CascadeType.MERGE)
+    @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
     @JoinColumns({
             @JoinColumn(name = "app_code", referencedColumnName = "app_code", nullable = false),
             @JoinColumn(name = "role_code", referencedColumnName = "code", nullable = false)

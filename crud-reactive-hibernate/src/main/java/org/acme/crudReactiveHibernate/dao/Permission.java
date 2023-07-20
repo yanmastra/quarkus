@@ -5,26 +5,36 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.io.Serializable;
+import java.util.Date;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Permission implements Serializable {
     @JsonProperty("id")
     private String id;
-    @JsonProperty("app_code")
-    private String appCode;
-
     @JsonProperty("code")
     private String code;
+    @JsonProperty("app_code")
+    private String appCode;
     @JsonProperty("name")
     private String name;
 
+    @JsonProperty("deleted_at")
+    private Date deletedAt;
+    @JsonProperty("deleted_by")
+    private String deletedBy;
+
     @JsonIgnore
     public org.acme.crudReactiveHibernate.data.entity.Permission toDTO() {
-        return new org.acme.crudReactiveHibernate.data.entity.Permission(id, code, appCode, name);
+        return new org.acme.crudReactiveHibernate.data.entity.Permission(id, appCode, code, name, deletedAt, deletedBy);
     }
 
     public static Permission fromDTO(org.acme.crudReactiveHibernate.data.entity.Permission permission) {
-        return new Permission(permission.getCode(), permission.getName());
+        Permission dao = new Permission(permission.getCode(), permission.getName());
+        dao.setId(permission.getId());
+        dao.setAppCode(permission.getAppCode());
+        dao.setDeletedAt(permission.getDeletedAt());
+        dao.setDeletedBy(permission.getDeletedBy());
+        return dao;
     }
 
     @Override
@@ -59,6 +69,22 @@ public class Permission implements Serializable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Date getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Date deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public void setDeletedBy(String deletedBy) {
+        this.deletedBy = deletedBy;
     }
 
     public String getId() {

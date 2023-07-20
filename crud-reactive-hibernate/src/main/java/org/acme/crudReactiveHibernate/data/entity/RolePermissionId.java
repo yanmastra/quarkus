@@ -12,7 +12,7 @@ public class RolePermissionId {
     })
     private Role role;
     @ManyToOne(cascade = CascadeType.MERGE)
-    @JoinColumn(name = "permission_code", referencedColumnName = "code", nullable = false)
+    @JoinColumn(name = "permission_code", referencedColumnName = "id", nullable = false)
     private Permission permission;
 
 
