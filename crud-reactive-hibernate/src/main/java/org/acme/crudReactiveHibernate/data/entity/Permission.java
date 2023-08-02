@@ -47,6 +47,13 @@ public class Permission extends PanacheEntityBase implements Serializable {
     @Column(name = "deleted_by", length = 64)
     private String deletedBy;
 
+    @CreationTimestamp
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "created_at")
+    private Date createdAt;
+    @Column(name = "created_by", length = 64)
+    private String createdBy;
+
     public Permission() {
     }
 
@@ -116,5 +123,21 @@ public class Permission extends PanacheEntityBase implements Serializable {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
     }
 }

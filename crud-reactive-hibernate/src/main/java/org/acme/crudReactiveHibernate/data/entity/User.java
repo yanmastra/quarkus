@@ -15,7 +15,7 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "user",
+        name = "auth_user",
         indexes = {
                 @Index(name = "search", columnList = "id, username, email"),
                 @Index(name = "_deleted_search", columnList = "deleted_at"),

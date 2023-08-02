@@ -88,6 +88,15 @@ public class Role extends PanacheEntityBase implements Serializable {
         permissions.add(rp);
     }
 
+    @Override
+    public String toString() {
+        return "Role{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                '}';
+    }
+
     public RoleId getId() {
         return id;
     }

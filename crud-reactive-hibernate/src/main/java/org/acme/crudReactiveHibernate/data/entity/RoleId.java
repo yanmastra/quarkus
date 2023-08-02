@@ -31,6 +31,14 @@ public class RoleId {
         return hcb.toHashCode();
     }
 
+    @Override
+    public String toString() {
+        return "RoleId{" +
+                "appCode='" + appCode + '\'' +
+                ", code='" + code + '\'' +
+                '}';
+    }
+
     public RoleId() {
     }
 

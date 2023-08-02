@@ -6,17 +6,14 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-import org.acme.crudReactiveHibernate.data.PermissionRepository;
-import org.acme.crudReactiveHibernate.data.RoleRepository;
-import org.acme.crudReactiveHibernate.data.UserRepository;
 import org.acme.crudReactiveHibernate.data.entity.*;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 @ApplicationScoped
 public class SeedServices {
@@ -25,54 +22,52 @@ public class SeedServices {
     Logger logger;
 
     @Inject
-    PermissionRepository permissionRepository;
-
-    @Inject
-    RoleRepository roleRepository;
-
-
-    @Inject
-    UserRepository userRepository;
-
-    @Inject
     Mutiny.SessionFactory sf;
+
+    @ConfigProperty(name = "crud-reactive-hibernate.clear-seed", defaultValue = "false")
+    boolean clearSeed;
 
     void onStart(@Observes StartupEvent event) throws InterruptedException {
         logger.info("##############          SEEDING         #################");
-        sf.withTransaction(session -> session.find(Role.class, new RoleId("SYSTEM", "SYSTEM_ROOT")))
-                .map(result -> {
-                    logger.info("existing role: " + result);
-                    return !Objects.isNull(result);
-                })
-                .call(result -> {
-                    if (result) {
-                        return sf.withTransaction(session -> RolePermission.delete("id.role.id.appCode", "SYSTEM")
-                                        .call(r -> Role.delete("id.appCode", "SYSTEM"))
-                                        .call(r -> Permission.delete("appCode", "SYSTEM"))
-                                        .call(r -> User.delete("username", "ROOT_SYSTEM")))
-                                .onItem().invoke(r -> {
-                                    logger.info("Cleaning success");
-                                });
-                    } else
-                        return Uni.createFrom().nullItem();
-                })
-                .call(r -> {
-                    Role role = createRole();
+        sf.withTransaction(session -> {
                     List<PanacheEntityBase> entities = new ArrayList<>();
-                    entities.add(role);
-
+                    Role role = createRole();
                     List<Permission> permissions = createPermission();
-                    entities.addAll(permissions);
+                    User user = createUser();
 
-                    for (Permission p : permissions) {
-                        entities.add(new RolePermission(role, p));
+                    Uni<Role> result = session.find(Role.class, new RoleId("SYSTEM", "SYSTEM_ROOT"));
+                    result = result.onItem().invoke(resultX -> {
+                        if (resultX == null) {
+                            role.setCreatedBy("SYSTEM");
+                            entities.add(role);
+                        } else {
+                            role.setId(resultX.getId());
+                        }
+                    });
+                    for (Permission p: permissions) {
+                        result = result.onItem().call(r -> Permission.find("appCode=?1 and code=?2", p.getAppCode(), p.getCode()).firstResult()
+                                .onItem().invoke(permission -> {
+                                    if (permission == null) {
+                                        p.setCreatedBy("SYSTEM");
+                                        entities.add(p);
+                                        entities.add(new RolePermission(role, p));
+                                    } else {
+                                        p.setId(((Permission) permission).getId());
+                                    }
+                                }));
                     }
 
-                    User user = createUser();
-                    entities.add(user);
-                    entities.add(new UserRole(user, role));
-
-                    return sf.withTransaction(session -> session.persistAll(entities.toArray()));
+                    result = result.call(r -> User.find("username=?1", user.getUsername()).firstResult()
+                            .onItem().invoke(rx -> {
+                                if (rx == null) {
+                                    user.setCreatedBy("SYSTEM");
+                                    entities.add(user);
+                                    entities.add(new UserRole(user, role));
+                                } else {
+                                    user.setId(((User) rx).getId());
+                                }
+                            }));
+                    return result.call(r -> session.persistAll(entities.toArray()));
                 })
                 .subscribe().with(r -> logger.info("SEEDING COMPLETE"));
     }
@@ -91,7 +86,11 @@ public class SeedServices {
                 new Permission("SYSTEM", "VIEW_USER", "View USER"),
                 new Permission("SYSTEM", "VIEW_ROLE", "View Role"),
                 new Permission("SYSTEM", "VIEW_PERMISSION", "View Permission"),
-                new Permission("SYSTEM", "CHANGE_ROLE_PERMISSION", "Change Role Permission")
+                new Permission("SYSTEM", "CHANGE_ROLE_PERMISSION", "Change Role Permission"),
+                new Permission("SYSTEM", "CREATE_PERMISSION", "Create any Permission"),
+                new Permission("SYSTEM", "UPDATE_PERMISSION", "Update any Permission"),
+                new Permission("SYSTEM", "DELETE_PERMISSION", "Delete any Permission"),
+                new Permission("SYSTEM", "CREATE_APP_ADMIN", "Create an Administrator for an Application")
         ));
     }
 
