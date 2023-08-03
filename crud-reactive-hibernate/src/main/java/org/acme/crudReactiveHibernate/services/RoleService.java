@@ -8,7 +8,7 @@ import jakarta.persistence.PersistenceException;
 import jakarta.ws.rs.NotFoundException;
 import org.acme.crudReactiveHibernate.dao.RoleOnly;
 import org.acme.crudReactiveHibernate.dao.RoleWithPermission;
-import org.acme.crudReactiveHibernate.data.RoleRepository;
+import org.acme.crudReactiveHibernate.data.repository.RoleRepository;
 import org.acme.crudReactiveHibernate.data.entity.RoleId;
 import org.jboss.logging.Logger;
 

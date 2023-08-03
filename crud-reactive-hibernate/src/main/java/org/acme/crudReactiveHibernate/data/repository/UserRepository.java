@@ -1,4 +1,4 @@
-package org.acme.crudReactiveHibernate.data;
+package org.acme.crudReactiveHibernate.data.repository;
 
 import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
 import io.smallrye.mutiny.Uni;

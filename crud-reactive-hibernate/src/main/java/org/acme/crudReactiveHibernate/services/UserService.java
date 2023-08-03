@@ -9,7 +9,7 @@ import jakarta.ws.rs.NotFoundException;
 import org.acme.crudReactiveHibernate.dao.User;
 import org.acme.crudReactiveHibernate.dao.UserOnly;
 import org.acme.crudReactiveHibernate.dao.UserWithPermission;
-import org.acme.crudReactiveHibernate.data.UserRepository;
+import org.acme.crudReactiveHibernate.data.repository.UserRepository;
 import org.jboss.logging.Logger;
 
 import java.util.List;

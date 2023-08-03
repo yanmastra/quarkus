@@ -21,8 +21,14 @@ import java.util.Set;
         @Index(name = "_deleted_search", columnList = "deleted_at"),
 })
 @SQLDelete(sql = "UPDATE user SET deleted_at=NOW() WHERE id=?")
-@FilterDef(name = "deletedRoleFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
-@Filter(name = "deletedRoleFilter", condition = "deleted_at is null = :isDeleted")
+@FilterDefs({
+        @FilterDef(name = "deletedRoleFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class)),
+        @FilterDef(name = "myApplicationRoles", parameters = @ParamDef(name = "appCode", type = Boolean.class)),
+})
+@Filters({
+        @Filter(name = "deletedRoleFilter", condition = "deleted_at is not null = :isDeleted"),
+        @Filter(name = "myApplicationRoles", condition = "app_code = :appCode")
+})
 public class Role extends PanacheEntityBase implements Serializable {
     @EmbeddedId
     private RoleId id;
