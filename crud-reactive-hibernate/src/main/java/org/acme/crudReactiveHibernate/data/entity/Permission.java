@@ -5,7 +5,6 @@ import io.quarkus.runtime.util.StringUtil;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.*;
-import lombok.Data;
 import org.hibernate.annotations.*;
 
 import java.io.Serializable;
@@ -28,7 +27,6 @@ import java.util.UUID;
                 @Filter(name = "myApplicationFilter", condition = "deleted_at is null and app_code=:appCode")
         }
 )
-@Data
 public class Permission extends PanacheEntityBase implements Serializable {
     @Id
     @Column(length = 36)
@@ -91,5 +89,69 @@ public class Permission extends PanacheEntityBase implements Serializable {
         if (StringUtil.isNullOrEmpty(id)) {
             id = UUID.randomUUID().toString();
         }
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getAppCode() {
+        return appCode;
+    }
+
+    public void setAppCode(String appCode) {
+        this.appCode = appCode;
+    }
+
+    public Date getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Date deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDeletedBy() {
+        return deletedBy;
+    }
+
+    public void setDeletedBy(String deletedBy) {
+        this.deletedBy = deletedBy;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
     }
 }

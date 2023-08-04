@@ -1,5 +1,6 @@
 package org.acme.crudReactiveHibernate.resources;
 
+import com.acme.authorization.json.ResponseJson;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -54,8 +55,8 @@ public class PermissionResource {
     @Path("{id}")
     public Uni<Response> delete(@PathParam("id") String id) {
         return permissionService.delete(id).onItem().transform(result ->
-                Response.status(result ? 200: 500)
-                        .entity(new org.acme.crudReactiveHibernate.dao.Response(result, result ? "Permission: %s has been deleted successfully".formatted(id):"Unable to delete"))
+                Response.status(result ? 200 : 500)
+                        .entity(new ResponseJson<>(result, result ? "Permission: %s has been deleted successfully".formatted(id) : "Unable to delete"))
                         .build()
         );
     }

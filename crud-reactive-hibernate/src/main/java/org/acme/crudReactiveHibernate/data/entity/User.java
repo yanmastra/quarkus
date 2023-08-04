@@ -22,7 +22,7 @@ import java.util.UUID;
         }
 )
 @SQLDelete(sql = "UPDATE user SET deleted_at=NOW() WHERE id=?")
-@SQLSelect(sql = "SELECT id, username, email, name, createdAt, createdBy, updatedAt, updatedBy, deletedAt, deletedBy FROM user")
+@SQLSelect(sql = "SELECT id, username, email, name, createdAt, createdBy, updatedAt, updatedBy, deletedAt, deletedBy FROM auth_user")
 @FilterDef(name = "deletedUserFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
 @Filter(name = "deletedUserFilter", condition = "deleted_at is null = :isDeleted")
 public class User extends PanacheEntityBase implements Serializable {
