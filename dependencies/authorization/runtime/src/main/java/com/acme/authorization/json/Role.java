@@ -8,6 +8,8 @@ import java.util.Date;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Role implements Serializable {
+    @JsonProperty("id")
+    private String id;
     @JsonProperty("app_code")
     private String appCode;
     @JsonProperty("code")
@@ -33,11 +35,12 @@ public class Role implements Serializable {
     public Role() {
     }
 
-    public Role(String code, String appCode, String name, String description) {
+    public Role(String id, String code, String appCode, String name, String description) {
         this.code = code;
         this.appCode = appCode;
         this.name = name;
         this.description = description;
+        this.id = id;
     }
 
     public String getAppCode() {
@@ -118,5 +121,13 @@ public class Role implements Serializable {
 
     public void setDeletedBy(String deletedBy) {
         this.deletedBy = deletedBy;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

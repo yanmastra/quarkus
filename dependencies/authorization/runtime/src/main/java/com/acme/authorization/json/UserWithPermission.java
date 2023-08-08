@@ -14,6 +14,10 @@ public class UserWithPermission extends User {
     @JsonProperty("roles")
     private List<RoleWithPermission> roles;
 
+    public UserWithPermission(String id, String username, String email, String name) {
+        super(id, username, email, name);
+    }
+
     public List<RoleWithPermission> getRoles() {
         return roles;
     }
