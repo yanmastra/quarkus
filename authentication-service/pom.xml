@@ -86,11 +86,8 @@
     </dependency>
 
     <dependency>
-      <groupId>net.acintya</groupId>
-      <artifactId>key-gen</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
-      <scope>system</scope>
-      <systemPath>${project.basedir}/../dependencies/key-gen-1.0.0-SNAPSHOT.jar</systemPath>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-container-image-docker</artifactId>
     </dependency>
   </dependencies>
   <build>

@@ -1,7 +1,10 @@
 package org.acme.authenticationService.resources;
 
+import com.acme.authorization.security.AuthorizationFilter;
+import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.handler.HttpException;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -22,6 +25,10 @@ public class UserResource {
     @Inject
     Logger logger;
 
+    @Inject
+    AuthorizationFilter filter;
+
+    @RolesAllowed({"CREATE_USER", "CREATE_SYS_USER"})
     @POST
     public Uni<Response> create(UserOnly user) {
         try {
@@ -67,8 +74,10 @@ public class UserResource {
         }
     }
 
+    @RolesAllowed({"VIEW_ALL", "VIEW_ALL_USER"})
     @GET
     public Uni<List<org.acme.authenticationService.dao.UserOnly>> getUser() {
+        Log.info("get user");
         return userService.findAll();
     }
 }

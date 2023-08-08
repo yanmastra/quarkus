@@ -1,10 +1,10 @@
 package org.acme.authenticationService.data.entity;
 
+import com.acme.authorization.utils.PasswordGenerator;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
-import jakarta.persistence.*;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
-import net.acintya.keyGen.Generator;
+import jakarta.persistence.*;
 import org.hibernate.annotations.*;
 
 import java.io.Serializable;
@@ -52,7 +52,7 @@ public class Application extends PanacheEntityBase implements Serializable {
 
     @PrePersist
     public void generateSecretKey() {
-        secretKey = Generator.generatePassword(32, true);
+        secretKey = PasswordGenerator.generatePassword(32, true);
     }
 
     public Application() {

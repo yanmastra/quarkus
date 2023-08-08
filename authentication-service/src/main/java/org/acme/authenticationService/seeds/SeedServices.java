@@ -1,5 +1,6 @@
 package org.acme.authenticationService.seeds;
 
+import com.acme.authorization.utils.PasswordGenerator;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
@@ -7,7 +8,6 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-import net.acintya.keyGen.Generator;
 import org.acme.authenticationService.data.entity.*;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.hibernate.reactive.mutiny.Mutiny;
@@ -77,7 +77,7 @@ public class SeedServices {
                             .onItem().invoke(rx -> {
                                 if (rx == null) {
                                     authUser.setCreatedBy("SYSTEM");
-                                    String pass = Generator.generatePassword(32, true);
+                                    String pass = PasswordGenerator.generatePassword(32, true);
                                     authUser.setPasswordTextPlain(pass);
                                     Log.info("ROOT PASSWORD:"+pass);
                                     entities.add(authUser);
@@ -109,7 +109,8 @@ public class SeedServices {
                 new Permission("SYSTEM", "CREATE_PERMISSION", "Create any Permission"),
                 new Permission("SYSTEM", "UPDATE_PERMISSION", "Update any Permission"),
                 new Permission("SYSTEM", "DELETE_PERMISSION", "Delete any Permission"),
-                new Permission("SYSTEM", "CREATE_APP_ADMIN", "Create an Administrator for an Application")
+                new Permission("SYSTEM", "CREATE_APP_ADMIN", "Create an Administrator for an Application"),
+                new Permission("SYSTEM", "VIEW_ALL_USER", "View All Users")
         ));
     }
 
