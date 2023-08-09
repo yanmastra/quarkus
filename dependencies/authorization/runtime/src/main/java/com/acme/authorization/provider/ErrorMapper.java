@@ -6,11 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.logging.Log;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
-import jakarta.ws.rs.ext.Provider;
 
-@Provider
+@Singleton
 public class ErrorMapper implements ExceptionMapper<RuntimeException> {
 
     @Inject
@@ -25,6 +25,7 @@ public class ErrorMapper implements ExceptionMapper<RuntimeException> {
         );
         try {
             if (exception instanceof HttpException httpException) {
+                responseJson.setMessage(httpException.getPayload());
                 return Response.status(httpException.getStatusCode()).entity(objectMapper.writeValueAsString(responseJson)).build();
             } else
                 return Response.status(500).entity(objectMapper.writeValueAsString(responseJson)).build();

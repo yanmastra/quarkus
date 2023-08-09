@@ -42,7 +42,7 @@ public class AuthenticationService {
                 .firstResult().chain(user -> {
                     Log.info("result: "+user);
                     if (user == null) {
-                        throw new HttpException(404, "AuthUser with username: %s not found on application: %s".formatted(credential.username, credential.appCode));
+                        throw new HttpException(401, "Invalid credential");
                     }
 
                     return appRepository.findById(credential.appCode).chain(app -> {
@@ -76,7 +76,9 @@ public class AuthenticationService {
                                     throw new RuntimeException(e);
                                 }
                             });
-                        } else throw new HttpException(401, "Invalid credential");
+                        } else {
+                            throw new HttpException(401, "Invalid credential");
+                        }
                     });
                 });
     }

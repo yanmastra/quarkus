@@ -13,7 +13,7 @@ cd $DIR || exit
 
 export QUARKUS_DEBUG_PORT=15005
 export QUARKUS_LOG_LEVEL=INFO
-export QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=update
+export QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=drop-and-create
 
 mvn clean
 mvn quarkus:dev
