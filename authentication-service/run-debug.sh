@@ -11,9 +11,9 @@ mvn clean install -DskipTests
 sleep 2
 cd $DIR || exit
 
-export QUARKUS_DEBUG_PORT=15005
+export DEBUG=15005
 export QUARKUS_LOG_LEVEL=INFO
-export QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=drop-and-create
+export QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=update
 
 mvn clean
-mvn quarkus:dev
+mvn quarkus:dev -Ddebug=$DEBUG

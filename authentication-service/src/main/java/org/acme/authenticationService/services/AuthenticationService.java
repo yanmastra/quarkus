@@ -13,7 +13,9 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.acme.authenticationService.dao.UserWithPermission;
+import org.acme.authenticationService.dao.UserOnly;
+import org.acme.authenticationService.data.entity.RolePermission;
+import org.acme.authenticationService.data.entity.UserRole;
 import org.acme.authenticationService.data.repository.ApplicationRepository;
 import org.acme.authenticationService.data.repository.UserRepository;
 import org.acme.authenticationService.data.repository.UserRoleRepository;
@@ -21,6 +23,7 @@ import org.acme.authenticationService.data.repository.UserRoleRepository;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Set;
 
 @ApplicationScoped
 public class AuthenticationService {
@@ -53,24 +56,34 @@ public class AuthenticationService {
                                 }
 
                                 user.setRoles(new HashSet<>(Collections.singletonList(userRole)));
-                                UserWithPermission userWithPermission = UserWithPermission.fromDto(user).clearTimestamp();
+                                UserOnly userOnly = UserOnly.fromDto(user);
+                                Set<String> roleGroup = new HashSet<>();
+
+                                for (UserRole ur: user.getRoles()) {
+                                    roleGroup.add(ur.getRole().getCode());
+                                    for (RolePermission rp: ur.getRole().getPermissions()) roleGroup.add(rp.getPermission().getCode());
+                                }
 
                                 try {
+                                    String subject = objectMapper.writeValueAsString(userOnly);
+
                                     Date accessExpired = DateTimeUtils.getExpiredToken();
                                     Date refreshExpired = DateTimeUtils.getExpiredRefreshToken();
-                                    String accessToken = Jwt.subject(objectMapper.writeValueAsString(userWithPermission))
+                                    String accessToken = Jwt.subject(subject)
                                             .expiresAt(accessExpired.getTime())
                                             .issuer(credential.appCode)
                                             .audience("access_token")
+                                            .groups(roleGroup)
                                             .jwe().encryptWithSecret(app.getSecretKey());
 
-                                    String refreshToken = Jwt.subject(userWithPermission.getId())
+                                    String refreshToken = Jwt.subject(subject)
                                             .expiresAt(refreshExpired.getTime())
                                             .issuer(credential.appCode)
                                             .audience("refresh_token")
+                                            .groups(roleGroup)
                                             .jwe().encryptWithSecret(app.getSecretKey());
 
-                                    AuthenticationResponse authResponse = new AuthenticationResponse(accessToken, refreshToken, userWithPermission);
+                                    AuthenticationResponse authResponse = new AuthenticationResponse(accessToken, refreshToken, userOnly);
                                     return Uni.createFrom().item(authResponse);
                                 } catch (JsonProcessingException e) {
                                     throw new RuntimeException(e);

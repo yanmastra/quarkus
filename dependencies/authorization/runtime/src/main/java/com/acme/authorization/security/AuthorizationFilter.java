@@ -12,20 +12,21 @@ import io.quarkus.runtime.util.StringUtil;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import io.vertx.ext.web.handler.HttpException;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.container.PreMatching;
+import jakarta.ws.rs.ext.Provider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.jwt.JsonWebToken;
-import org.jboss.resteasy.reactive.server.spi.ResteasyReactiveContainerRequestContext;
-import org.jboss.resteasy.reactive.server.spi.ResteasyReactiveContainerRequestFilter;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-@ApplicationScoped
-public class AuthorizationFilter implements ResteasyReactiveContainerRequestFilter {
+@PreMatching
+@Provider
+public class AuthorizationFilter implements ContainerRequestFilter {
 
     @ConfigProperty(name = "authorization.security-secret-key", defaultValue = "")
     String securitySecretKey;
@@ -45,6 +46,8 @@ public class AuthorizationFilter implements ResteasyReactiveContainerRequestFilt
         String auth = context.getHeaders().getFirst(HttpHeaderNames.AUTHORIZATION.toString());
         if (!StringUtil.isNullOrEmpty(auth)) {
             if (auth.startsWith("Bearer ")) auth = auth.replace("Bearer ", "");
+        } else {
+            return;
         }
 
         try {
@@ -69,12 +72,4 @@ public class AuthorizationFilter implements ResteasyReactiveContainerRequestFilt
             throw new HttpException(401, e.getMessage(), e);
         }
     }
-
-    @Override
-    public void filter(ResteasyReactiveContainerRequestContext requestContext) {
-        Log.info("ResteasyReactiveContainerRequestContext::"+requestContext);
-        requestContext.resume();
-    }
-
-
 }
