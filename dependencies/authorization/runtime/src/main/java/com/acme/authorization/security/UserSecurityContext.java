@@ -5,7 +5,7 @@ import jakarta.ws.rs.core.SecurityContext;
 import java.security.Principal;
 
 public class UserSecurityContext implements SecurityContext {
-    private UserPrincipal principal;
+    private final UserPrincipal principal;
 
     public UserSecurityContext(UserPrincipal principal) {
         this.principal = principal;

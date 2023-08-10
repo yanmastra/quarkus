@@ -1,9 +1,6 @@
 package com.acme.authorization.security;
 
-import com.acme.authorization.json.Permission;
-import com.acme.authorization.json.RoleWithPermission;
 import com.acme.authorization.json.UserOnly;
-import com.acme.authorization.json.UserWithPermission;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -38,7 +35,7 @@ public class AuthorizationFilter implements ContainerRequestFilter {
     String publicPath;
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        if (publicPath.contains(context.getUriInfo().getPath())) {
+        if ( publicPath.contains(context.getUriInfo().getPath())) {
             return;
         }
 
@@ -53,17 +50,10 @@ public class AuthorizationFilter implements ContainerRequestFilter {
         try {
             JsonWebToken jsonWebToken = parser.decrypt(auth, securitySecretKey);
             String subject = jsonWebToken.getSubject();
-            UserWithPermission payload = objectMapper.readValue(subject, UserWithPermission.class);
 
-            UserOnly userOnly = new UserOnly(payload.getId(), payload.getUsername(), payload.getEmail(), payload.getName());
-            List<String> roles = new ArrayList<>();
-            for (RoleWithPermission rp: payload.getRoles()) {
-                if (rp.getAppCode().equals(jsonWebToken.getIssuer())) {
-                    for (Permission p: rp.getPermissions()) {
-                        roles.add(p.getCode());
-                    }
-                }
-            }
+            UserOnly userOnly = objectMapper.readValue(subject, UserOnly.class);
+
+            List<String> roles = new ArrayList<>(jsonWebToken.getGroups());
             context.setSecurityContext(new UserSecurityContext(new UserPrincipal(userOnly, roles)));
             Log.info("authorized:"+context.getUriInfo().getPath());
         } catch (ParseException | JsonProcessingException e) {
