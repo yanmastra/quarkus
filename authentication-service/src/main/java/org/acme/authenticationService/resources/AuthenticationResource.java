@@ -6,6 +6,7 @@ import com.acme.authorization.json.SignInCredential;
 import io.quarkus.logging.Log;
 import io.quarkus.runtime.util.StringUtil;
 import io.smallrye.mutiny.Uni;
+import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -22,6 +23,7 @@ public class AuthenticationResource {
     @Inject
     AuthenticationService authenticationService;
 
+    @PermitAll
     @POST
     public Uni<ResponseJson<AuthenticationResponse>> authenticate(SignInCredential credential) {
         if (StringUtil.isNullOrEmpty(credential.username) || StringUtil.isNullOrEmpty(credential.password) || StringUtil.isNullOrEmpty(credential.appCode)) {

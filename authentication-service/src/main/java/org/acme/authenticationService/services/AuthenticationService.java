@@ -19,6 +19,7 @@ import org.acme.authenticationService.data.entity.UserRole;
 import org.acme.authenticationService.data.repository.ApplicationRepository;
 import org.acme.authenticationService.data.repository.UserRepository;
 import org.acme.authenticationService.data.repository.UserRoleRepository;
+import org.eclipse.microprofile.jwt.Claims;
 
 import java.util.Collections;
 import java.util.Date;
@@ -70,6 +71,7 @@ public class AuthenticationService {
                                     Date accessExpired = DateTimeUtils.getExpiredToken();
                                     Date refreshExpired = DateTimeUtils.getExpiredRefreshToken();
                                     String accessToken = Jwt.subject(subject)
+                                            .claim(Claims.preferred_username, userOnly.getUsername())
                                             .expiresAt(accessExpired.getTime())
                                             .issuer(credential.appCode)
                                             .audience("access_token")

@@ -75,7 +75,7 @@ public class UserResource {
     }
 
     @GET
-    @RolesAllowed({"VIEW_ALL", "VIEW_ALL_USER"})
+    @RolesAllowed({"VIEW_ALL"})
     public Uni<List<org.acme.authenticationService.dao.UserOnly>> getUser() {
         Log.info("get user");
         return userService.findAll();
