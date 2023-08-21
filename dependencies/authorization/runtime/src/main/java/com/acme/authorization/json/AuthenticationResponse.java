@@ -20,4 +20,13 @@ public class AuthenticationResponse {
         this.refreshToken = refreshToken;
         this.user = user;
     }
+
+    @Override
+    public String toString() {
+        return "AuthenticationResponse{" +
+                "accessToken='" + accessToken + '\'' +
+                ", refreshToken='" + refreshToken + '\'' +
+                ", user=" + user +
+                '}';
+    }
 }

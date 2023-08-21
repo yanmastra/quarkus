@@ -79,7 +79,7 @@ public class SeedServices {
                                     authUser.setCreatedBy("SYSTEM");
                                     String pass = PasswordGenerator.generatePassword(32, true);
                                     authUser.setPasswordTextPlain(pass);
-                                    Log.info("ROOT PASSWORD:"+pass);
+                                    logger.info("ROOT PASSWORD:"+pass);
                                     entities.add(authUser);
                                     entities.add(new UserRole(authUser, role));
                                 } else {

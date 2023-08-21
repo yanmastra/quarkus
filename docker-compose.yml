@@ -12,7 +12,7 @@ services:
       - MYSQL_USER=${MYSQL_USERNAME}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
-      - quarkus-learning:/var/lib/data:delegated
+      - quarkus-learning:/var/lib/mysql:delegated
       - ./docker/provision/mysql/init:/docker-entrypoint-initdb.d
     networks:
       - quarkus-learning
@@ -27,8 +27,6 @@ services:
 
 volumes:
   quarkus-learning:
-    name: quarkus-learning
-    driver: local
 
 networks:
   quarkus-learning:

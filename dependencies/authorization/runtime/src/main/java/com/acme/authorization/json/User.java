@@ -118,4 +118,20 @@ public abstract class User implements Serializable {
     public void setDeletedBy(String deletedBy) {
         this.deletedBy = deletedBy;
     }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id='" + id + '\'' +
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                ", name='" + name + '\'' +
+                ", createdAt=" + createdAt +
+                ", createdBy='" + createdBy + '\'' +
+                ", updatedAt=" + updatedAt +
+                ", updatedBy='" + updatedBy + '\'' +
+                ", deletedAt=" + deletedAt +
+                ", deletedBy='" + deletedBy + '\'' +
+                '}';
+    }
 }

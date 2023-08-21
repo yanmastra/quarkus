@@ -5,3 +5,4 @@
 **/**.env
 **/docker_env.sh
 **/**.zip
+**.cache

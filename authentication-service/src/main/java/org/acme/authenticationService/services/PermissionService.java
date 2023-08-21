@@ -1,7 +1,6 @@
 package org.acme.authenticationService.services;
 
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
-import io.quarkus.logging.Log;
 import io.quarkus.panache.common.Parameters;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -9,6 +8,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
 import org.acme.authenticationService.dao.Permission;
 import org.acme.authenticationService.data.repository.PermissionRepository;
+import org.jboss.logging.Logger;
 
 import java.util.List;
 
@@ -17,6 +17,8 @@ public class PermissionService {
 
     @Inject
     PermissionRepository repository;
+    @Inject
+    Logger logger;
 
     @WithTransaction
     public Uni<List<Permission>> findAll(String appCode) {
@@ -31,7 +33,7 @@ public class PermissionService {
 
     @WithTransaction
     public Uni<Permission> findOne(String id) {
-        Log.info("getting permission:"+id);
+        logger.info("getting permission:"+id);
         return repository.findById(id).chain(item -> {
             if (item != null) return Uni.createFrom().item(Permission.fromDTO(item));
             else throw new NotFoundException("Permission with id:%s not found".formatted(id));

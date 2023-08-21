@@ -1,65 +1,99 @@
 package com.acme.authorization.security;
 
-import com.acme.authorization.json.UserOnly;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.acme.authorization.utils.UriMatcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.quarkus.logging.Log;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.runtime.util.StringUtil;
-import io.smallrye.jwt.auth.principal.JWTParser;
-import io.smallrye.jwt.auth.principal.ParseException;
 import io.vertx.ext.web.handler.HttpException;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.jboss.logging.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 @PreMatching
 @Provider
 public class AuthorizationFilter implements ContainerRequestFilter {
-
-    @ConfigProperty(name = "authorization.security-secret-key", defaultValue = "")
-    String securitySecretKey;
-    @Inject
-    JWTParser parser;
     @Inject
     ObjectMapper objectMapper;
     @ConfigProperty(name = "authorization.public-path", defaultValue = "")
     String publicPath;
+    @ConfigProperty(name = "authorization.service-url", defaultValue = "")
+    String authorizationUrl;
+    @Inject
+    Logger logger;
+
+    @Inject
+    Instance<Authorizer> authorizerInstance;
+
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        if ( publicPath.contains(context.getUriInfo().getPath())) {
-            return;
-        }
+        if (isPublic(context, publicPath)) return;
 
-        Log.info("authorizing:"+context.getUriInfo().getPath());
+        logger.info("authorizing:"+context.getUriInfo().getPath());
         String auth = context.getHeaders().getFirst(HttpHeaderNames.AUTHORIZATION.toString());
         if (!StringUtil.isNullOrEmpty(auth)) {
             if (auth.startsWith("Bearer ")) auth = auth.replace("Bearer ", "");
-        } else {
-            return;
         }
 
         try {
-            JsonWebToken jsonWebToken = parser.decrypt(auth, securitySecretKey);
-            String subject = jsonWebToken.getSubject();
+            UserPrincipal principal = authorize(auth);
+            context.setSecurityContext(new UserSecurityContext(principal));
+            return;
+        }catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            if (e instanceof HttpException httpException) {
+                context.abortWith(Response.status(httpException.getStatusCode()).entity(httpException.getPayload()).build());
+                return;
+            }
+        }
+        context.abortWith(Response.status(HttpResponseStatus.BAD_GATEWAY.code()).entity("Unable to access authenticate/authorize server").build());
+    }
 
-            UserOnly userOnly = objectMapper.readValue(subject, UserOnly.class);
+    private UserPrincipal authorize(String accessToken) {
+        TokenType type = checkType(accessToken);
 
-            List<String> roles = new ArrayList<>(jsonWebToken.getGroups());
-            context.setSecurityContext(new UserSecurityContext(new UserPrincipal(userOnly, roles)));
-            Log.info("authorized:"+context.getUriInfo().getPath());
-        } catch (ParseException | JsonProcessingException e) {
-            Log.info("authorizing:"+context.getUriInfo().getPath());
-            Log.error(e.getMessage(), e);
-            throw new HttpException(401, e.getMessage(), e);
+        if (type == TokenType.DEFAULT) {
+            Authorizer authorizerPrior = null;
+            if (authorizerInstance.stream().count() > 1) {
+                for (Authorizer authorizer: authorizerInstance) {
+                    authorizerPrior = authorizer;
+                    break;
+                }
+            } else  {
+                authorizerPrior = authorizerInstance.stream().findFirst().orElse(null);
+            }
+            if (authorizerPrior == null) {
+                authorizerPrior = new HttpAuthorizer.Builder()
+                        .setObjectMapper(objectMapper)
+                        .setUrl(authorizationUrl)
+                        .build();
+            }
+
+            return authorizerPrior.authorize(accessToken);
+        } else {
+            throw new HttpException(HttpResponseStatus.BAD_REQUEST.code(), "Token type is not supported yet");
+        }
+    }
+
+    private boolean isPublic(ContainerRequestContext context, String publicPath) {
+        String[] publicPaths = publicPath.split(",");
+        return UriMatcher.isMatch(publicPaths, context.getUriInfo().getPath());
+    }
+
+    private TokenType checkType(String accessToken) {
+        if (StringUtil.isNullOrEmpty(accessToken)) throw new HttpException(HttpResponseStatus.BAD_REQUEST.code(), "Token not provided");
+        if (accessToken.startsWith("GOOGLE.")) {
+            return TokenType.GOOGLE;
+        } else {
+            return TokenType.DEFAULT;
         }
     }
 }

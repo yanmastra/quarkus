@@ -16,17 +16,29 @@
  */
 package com.acme.authorization.it;
 
+import io.smallrye.mutiny.Uni;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
 @Path("/authorization")
 @ApplicationScoped
+@Produces(MediaType.TEXT_PLAIN)
 public class AuthorizationResource {
     // add some rest methods here
 
     @GET
     public String hello() {
         return "Hello authorization";
+    }
+
+    @RolesAllowed({"VIEW_ALL"})
+    @GET
+    @Path("user")
+    public Uni<String> user() {
+        return Uni.createFrom().item("This is user endpoint");
     }
 }
