@@ -55,8 +55,6 @@ public class AuthenticationService {
                         throw new HttpException(HttpResponseStatus.NOT_FOUND.code(), "Invalid credential");
                     }
 
-                    logger.info("path: "+System.getenv("AUTH_SERVICE_SESSION_CACHE_LOCATION"));
-
                     return appRepository.findById(credential.appCode).chain(app -> {
                         if (app == null) throw new HttpException(HttpResponseStatus.FORBIDDEN.code(), "Application not found");
 
@@ -71,7 +69,6 @@ public class AuthenticationService {
                                 Set<String> roleGroup = new HashSet<>();
                                 String tokenId = UUID.randomUUID().toString();
                                 String secretKey = app.getSecretKey();
-                                logger.info("secretKey:"+secretKey);
                                 String refreshKey = PasswordGenerator.generatePassword(32, true);
 
                                 for (UserRole ur: user.getRoles()) {
