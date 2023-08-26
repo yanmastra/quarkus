@@ -2,8 +2,6 @@ package com.acme.authorization.security;
 
 import jakarta.ws.rs.core.SecurityContext;
 
-import java.security.Principal;
-
 public class UserSecurityContext implements SecurityContext {
     private final UserPrincipal principal;
 
@@ -11,14 +9,18 @@ public class UserSecurityContext implements SecurityContext {
         this.principal = principal;
     }
 
+    public UserSecurityContext() {
+        principal = null;
+    }
+
     @Override
-    public Principal getUserPrincipal() {
+    public UserPrincipal getUserPrincipal() {
         return principal;
     }
 
     @Override
     public boolean isUserInRole(String s) {
-        return principal.isRoleAllowed(s);
+        return principal != null && principal.isRoleAllowed(s);
     }
 
     @Override
@@ -28,6 +30,6 @@ public class UserSecurityContext implements SecurityContext {
 
     @Override
     public String getAuthenticationScheme() {
-        return "JWT";
+        return "OAuth2";
     }
 }

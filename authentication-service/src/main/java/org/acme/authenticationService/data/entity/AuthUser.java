@@ -42,6 +42,10 @@ public class AuthUser extends PanacheEntityBase implements Serializable {
     private String password;
     @Column(length = 218)
     private String name;
+    @Column(name = "is_verified")
+    private boolean verified;
+    @Column(name = "phone")
+    private String phone;
 
     @Transient
     private Set<UserRole> roles = null;
@@ -194,6 +198,22 @@ public class AuthUser extends PanacheEntityBase implements Serializable {
 
     public boolean validatePassword(String plainText) {
         return BcryptUtil.matches(plainText, this.password);
+    }
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 
     @Override

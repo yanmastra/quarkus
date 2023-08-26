@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserPrincipal implements Principal {
@@ -15,14 +16,21 @@ public class UserPrincipal implements Principal {
     @JsonProperty("allowed_roles")
     private final List<String> allowedRoles;
 
-    public UserPrincipal(UserOnly user, List<String> allowedRoles) {
+    private final String appCode;
+
+    public UserPrincipal(UserOnly user, List<String> allowedRoles, String appCode) {
         this.user = user;
         this.allowedRoles = allowedRoles == null ? new ArrayList<>() : allowedRoles;
+        this.appCode = appCode;
     }
 
     @Override
     public String getName() {
-        return user.getName();
+        return user.getUsername();
+    }
+
+    public String getAppCode() {
+        return appCode;
     }
 
     public boolean isRoleAllowed(String roleCode){
@@ -35,5 +43,18 @@ public class UserPrincipal implements Principal {
                 "user=" + user +
                 ", allowedRoles=" + allowedRoles +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserPrincipal principal = (UserPrincipal) o;
+        return Objects.equals(user.getId(), principal.user.getId()) && Objects.equals(allowedRoles, principal.allowedRoles);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(user, allowedRoles);
     }
 }

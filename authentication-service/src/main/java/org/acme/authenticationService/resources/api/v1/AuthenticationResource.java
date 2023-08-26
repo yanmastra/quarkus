@@ -1,4 +1,4 @@
-package org.acme.authenticationService.resources;
+package org.acme.authenticationService.resources.api.v1;
 
 import com.acme.authorization.json.AuthenticationResponse;
 import com.acme.authorization.json.ResponseJson;
@@ -33,7 +33,6 @@ public class AuthenticationResource {
         }
 
         logger.info("request:"+credential);
-
         return authenticationService.authenticate(credential).map(response -> new ResponseJson<>(true, null, response));
     }
 

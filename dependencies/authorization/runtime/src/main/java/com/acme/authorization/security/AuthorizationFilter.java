@@ -1,5 +1,6 @@
 package com.acme.authorization.security;
 
+import com.acme.authorization.json.ResponseJson;
 import com.acme.authorization.utils.UriMatcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -35,7 +36,10 @@ public class AuthorizationFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        if (isPublic(context, publicPath)) return;
+        if (isPublic(context, publicPath)) {
+            context.setSecurityContext(new UserSecurityContext());
+            return;
+        }
 
         logger.info("authorizing:"+context.getUriInfo().getPath());
         String auth = context.getHeaders().getFirst(HttpHeaderNames.AUTHORIZATION.toString());
@@ -47,14 +51,14 @@ public class AuthorizationFilter implements ContainerRequestFilter {
             UserPrincipal principal = authorize(auth);
             context.setSecurityContext(new UserSecurityContext(principal));
             return;
-        }catch (Exception e) {
+        }catch (Throwable e) {
             logger.error(e.getMessage(), e);
             if (e instanceof HttpException httpException) {
-                context.abortWith(Response.status(httpException.getStatusCode()).entity(httpException.getPayload()).build());
+                context.abortWith(Response.status(httpException.getStatusCode()).entity(new ResponseJson<>(false, httpException.getPayload())).build());
                 return;
             }
         }
-        context.abortWith(Response.status(HttpResponseStatus.BAD_GATEWAY.code()).entity("Unable to access authenticate/authorize server").build());
+        context.abortWith(Response.status(HttpResponseStatus.BAD_GATEWAY.code()).entity(new ResponseJson<>(false,"Unable to access authenticate/authorize server")).build());
     }
 
     private UserPrincipal authorize(String accessToken) {

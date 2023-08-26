@@ -48,7 +48,7 @@ public class AuthenticationService {
 
     @WithTransaction
     public Uni<AuthenticationResponse> authenticate(SignInCredential credential) {
-        return userRepository.find("username=?1 or email = ?1", credential.username)
+        return userRepository.find("(username=?1 or email = ?1) and verified", credential.username)
                 .filter("isActiveUser", Parameters.with("isActive", true))
                 .firstResult().chain(user -> {
                     if (user == null) {
@@ -73,6 +73,8 @@ public class AuthenticationService {
 
                                 for (UserRole ur: user.getRoles()) {
                                     roleGroup.add(ur.getRole().getCode());
+                                    if (!ur.getRole().getCode().equalsIgnoreCase("SERVICE"))
+                                        roleGroup.add("USER");
                                     for (RolePermission rp: ur.getRole().getPermissions()) roleGroup.add(rp.getPermission().getCode());
                                 }
 
@@ -122,7 +124,9 @@ public class AuthenticationService {
             try {
                 return Uni.createFrom().item(TokenUtils.createAccessToken(token, parser, objectMapper));
             } catch (ParseException | JsonProcessingException e) {
-                throw new RuntimeException(e);
+                throw new HttpException(HttpResponseStatus.BAD_REQUEST.code(), "Invalid Token");
+            } catch (Throwable e) {
+                throw new HttpException(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), e.getMessage());
             }
         });
     }

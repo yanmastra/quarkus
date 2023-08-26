@@ -57,7 +57,7 @@ public class TokenUtils {
         String subject = jsonWebToken.getSubject();
         UserOnly data = objectMapper.readValue(subject, UserOnly.class);
 
-        return new UserPrincipal(data, jsonWebToken.getGroups().stream().toList());
+        return new UserPrincipal(data, jsonWebToken.getGroups().stream().toList(), appCode);
     }
 
     static AuthenticationResponse createAccessToken(String refreshToken, JWTParser parser, ObjectMapper objectMapper) throws ParseException, JsonProcessingException {
@@ -81,7 +81,7 @@ public class TokenUtils {
         String newRefreshKey = PasswordGenerator.generatePassword(32, true);
 
 
-        String accessToken = createAccessToken(appCode, subject, username, tokenId, DateTimeUtils.getExpiredRefreshToken(), allowedPermissions, appSecretKey);
+        String accessToken = createAccessToken(appCode, subject, username, tokenId, DateTimeUtils.getExpiredToken(), allowedPermissions, appSecretKey);
         String newRefreshToken = createRefreshToken(appCode, subject, username, tokenId, DateTimeUtils.getExpiredRefreshToken(), allowedPermissions, newRefreshKey);
         UserOnly userOnly = objectMapper.readValue(subject, UserOnly.class);
 

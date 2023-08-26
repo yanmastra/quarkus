@@ -1,12 +1,12 @@
-package org.acme.authenticationService.resources;
+package org.acme.authenticationService.resources.api.v1;
 
-import com.acme.authorization.security.AuthorizationFilter;
-import io.quarkus.logging.Log;
+import com.acme.authorization.security.UserSecurityContext;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.acme.authenticationService.dao.UserOnly;
@@ -25,13 +25,11 @@ public class UserResource {
     @Inject
     Logger logger;
 
-    @Inject
-    AuthorizationFilter filter;
-
-    @RolesAllowed({"CREATE_USER", "CREATE_SYS_USER"})
+    @RolesAllowed({"CREATE_USER"})
     @POST
-    public Uni<Response> create(UserOnly user) {
+    public Uni<Response> create(UserOnly user, @Context UserSecurityContext context) {
         try {
+            user.setCreatedBy(context.getUserPrincipal().getName());
             return userService.saveUser(user)
                     .onItem().transform(r -> Response.status(Response.Status.OK).entity(r).build())
                     .onFailure().transform(throwable -> new HttpException(500, throwable.getMessage()));
@@ -41,6 +39,7 @@ public class UserResource {
         }
     }
 
+    @RolesAllowed({"VIEW_ALL", "VIEW_USER"})
     @GET
     @Path("/{id}")
     public Uni<Response> get(@PathParam("id") String id) {
@@ -57,11 +56,13 @@ public class UserResource {
         }
     }
 
+    @RolesAllowed({"UPDATE_USER"})
     @PUT
     @Path("/{id}")
-    public Uni<Response> update(UserOnly user, @PathParam("id") String id) {
+    public Uni<Response> update(UserOnly user, @PathParam("id") String id, @Context UserSecurityContext context) {
         logger.info("request: id=" + id + ", data:" + user);
         try {
+            user.setUpdatedBy(context.getUserPrincipal().getName());
             return userService.updateUser(id, user)
                     .onItem().transform(r -> Response.status(Response.Status.OK).entity(r).build())
                     .onFailure().transform(throwable -> {
@@ -75,7 +76,7 @@ public class UserResource {
     }
 
     @GET
-    @RolesAllowed({"VIEW_ALL"})
+    @RolesAllowed({"VIEW_ALL", "VIEW_USER"})
     public Uni<List<org.acme.authenticationService.dao.UserOnly>> getUser() {
         logger.info("get user");
         return userService.findAll();

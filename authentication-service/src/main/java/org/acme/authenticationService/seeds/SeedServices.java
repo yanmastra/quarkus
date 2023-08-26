@@ -2,7 +2,6 @@ package org.acme.authenticationService.seeds;
 
 import com.acme.authorization.utils.PasswordGenerator;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
-import io.quarkus.logging.Log;
 import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -97,7 +96,8 @@ public class SeedServices {
                 new Permission("SYSTEM", "UPDATE_SYS_USER", "Update System AuthUser"),
                 new Permission("SYSTEM", "ASSIGN_TO_SYSTEM", "Assign AuthUser role to system"),
                 new Permission("SYSTEM", "CHANGE_SYSTEM_ROLE", "Change any system role"),
-                new Permission("SYSTEM", "CREATE_USER", "Create any AuthUser"),
+                new Permission("SYSTEM", "CREATE_USER", "Create any User"),
+                new Permission("SYSTEM", "UPDATE_USER", "Update any User"),
                 new Permission("SYSTEM", "CREATE_APP", "Create any Application"),
                 new Permission("SYSTEM", "CREATE_ROLE", "Create any Role"),
                 new Permission("SYSTEM", "UPDATE_ROLE", "Update Role"),

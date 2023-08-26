@@ -6,18 +6,27 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.PersistenceException;
 import jakarta.ws.rs.NotFoundException;
+import org.acme.authenticationService.dao.Permission;
+import org.acme.authenticationService.dao.RoleAddPermissionRequest;
 import org.acme.authenticationService.dao.RoleOnly;
 import org.acme.authenticationService.dao.RoleWithPermission;
-import org.acme.authenticationService.data.repository.RoleRepository;
 import org.acme.authenticationService.data.entity.RoleId;
+import org.acme.authenticationService.data.entity.RolePermission;
+import org.acme.authenticationService.data.repository.RolePermissionRepository;
+import org.acme.authenticationService.data.repository.RoleRepository;
 import org.jboss.logging.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class RoleService {
     @Inject
     RoleRepository repository;
+    @Inject
+    RolePermissionRepository rolePermissionRepository;
 
     @Inject
     Logger logger;
@@ -61,5 +70,19 @@ public class RoleService {
 //                    return Uni.join().all(updates).usingConcurrencyOf(3000).andFailFast();
 //                })
 //                .onItem().call(role -> repository.findById(role.getId())).onItem().transform(RoleWithPermission::fromDTO);
+    }
+
+    @WithTransaction
+    public Uni<RoleWithPermission> addPermission(String appCode, String code, RoleAddPermissionRequest request) {
+        return repository.findById(appCode, code).chain(role -> {
+            List<RolePermission> rp = new ArrayList<>();
+            Set<String> existing = role.getPermissions().stream().map(r -> r.getPermission().getCode()).collect(Collectors.toSet());
+            for (Permission p: request.getPermissions()) {
+                if (!existing.contains(p.getCode())) {
+                    rp.add(new RolePermission(role, p.toDTO()));
+                }
+            }
+            return rolePermissionRepository.persist(rp).chain(v -> repository.findById(appCode, code).map(RoleWithPermission::fromDTO));
+        });
     }
 }

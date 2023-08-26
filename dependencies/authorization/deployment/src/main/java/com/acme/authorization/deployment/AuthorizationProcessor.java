@@ -18,8 +18,9 @@ class AuthorizationProcessor {
 
     @BuildStep
     public ExceptionMapperBuildItem createErrorMapper() {
-        return new ExceptionMapperBuildItem.Builder(ErrorMapper.class.getName(), ErrorMapper.class.getName())
+        return new ExceptionMapperBuildItem.Builder(ErrorMapper.class.getName(), Exception.class.getName())
                 .setRegisterAsBean(true)
+                .setPriority(1)
                 .build();
     }
 
