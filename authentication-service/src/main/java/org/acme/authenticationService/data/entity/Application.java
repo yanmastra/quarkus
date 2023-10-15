@@ -22,6 +22,7 @@ public class Application extends PanacheEntityBase implements Serializable {
     private String code;
     @Column(length = 128)
     private String name;
+    private String description;
     @Column(name = "secret_key")
     private String secretKey;
 
@@ -61,6 +62,12 @@ public class Application extends PanacheEntityBase implements Serializable {
     public Application(String code, String name) {
         this.code = code;
         this.name = name;
+    }
+
+    public Application(String code, String name, String description) {
+        this.code = code;
+        this.name = name;
+        this.description = description;
     }
 
     public String getCode() {
@@ -149,5 +156,13 @@ public class Application extends PanacheEntityBase implements Serializable {
 
     public void setDeletedBy(String deletedBy) {
         this.deletedBy = deletedBy;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

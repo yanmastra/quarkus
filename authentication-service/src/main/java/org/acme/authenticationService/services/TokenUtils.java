@@ -57,7 +57,7 @@ public class TokenUtils {
         String subject = jsonWebToken.getSubject();
         UserOnly data = objectMapper.readValue(subject, UserOnly.class);
 
-        return new UserPrincipal(data, jsonWebToken.getGroups().stream().toList(), appCode);
+        return new UserPrincipal(data, jsonWebToken.getGroups().stream().toList(), appCode, accessToken);
     }
 
     static AuthenticationResponse createAccessToken(String refreshToken, JWTParser parser, ObjectMapper objectMapper) throws ParseException, JsonProcessingException {

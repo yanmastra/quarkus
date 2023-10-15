@@ -61,6 +61,7 @@ public class AuthenticationService {
                         if (user.validatePassword(credential.password)) {
                             return userRoleRepository.find("authUser=?1 and role.appCode=?2", user, credential.appCode).firstResult().chain(userRole -> {
                                 if (userRole == null) {
+                                    logger.error("Role with user:"+user.getId()+", appCode:"+credential.appCode+" not found");
                                     throw new HttpException(HttpResponseStatus.FORBIDDEN.code(), "Access to the application is denied!");
                                 }
 
@@ -81,7 +82,7 @@ public class AuthenticationService {
                                 try {
                                     String subject = objectMapper.writeValueAsString(userData);
 
-                                    Date accessExpired = DateTimeUtils.getExpiredToken();
+                                    Date accessExpired = credential.expToken == null ? DateTimeUtils.getExpiredToken() : credential.expToken;
                                     Date refreshExpired = DateTimeUtils.getExpiredRefreshToken();
                                     String accessToken = TokenUtils.createAccessToken(app.getCode(), subject, userData.getUsername(), tokenId, accessExpired, roleGroup, secretKey);
                                     String refreshToken = TokenUtils.createRefreshToken(app.getCode(), subject, userData.getUsername(), tokenId, refreshExpired, roleGroup, refreshKey);

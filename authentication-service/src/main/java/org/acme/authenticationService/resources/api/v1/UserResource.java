@@ -1,6 +1,8 @@
 package org.acme.authenticationService.resources.api.v1;
 
 import com.acme.authorization.security.UserSecurityContext;
+import com.acme.authorization.utils.ValidationUtils;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.annotation.security.RolesAllowed;
@@ -28,6 +30,10 @@ public class UserResource {
     @RolesAllowed({"CREATE_USER"})
     @POST
     public Uni<Response> create(UserOnly user, @Context UserSecurityContext context) {
+        if (!ValidationUtils.isEmail(user.getEmail())) {
+            throw new HttpException(HttpResponseStatus.BAD_REQUEST.code(), "Incorrect email format");
+        }
+
         try {
             user.setCreatedBy(context.getUserPrincipal().getName());
             return userService.saveUser(user)

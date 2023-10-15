@@ -4,13 +4,16 @@ import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Parameters;
 import io.smallrye.mutiny.Uni;
-import jakarta.inject.Singleton;
-import org.acme.authenticationService.data.entity.*;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.acme.authenticationService.data.entity.Permission;
+import org.acme.authenticationService.data.entity.Role;
+import org.acme.authenticationService.data.entity.RolePermission;
+import org.acme.authenticationService.data.entity.RolePermissionId;
 
 import java.util.Date;
 import java.util.List;
 
-@Singleton
+@ApplicationScoped
 public class RoleRepository implements PanacheRepositoryBase<Role, String> {
 
     public Uni<List<Role>> findByApp(String appCode) {

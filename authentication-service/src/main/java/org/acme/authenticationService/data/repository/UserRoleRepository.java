@@ -1,10 +1,10 @@
 package org.acme.authenticationService.data.repository;
 
 import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
-import jakarta.inject.Singleton;
+import jakarta.enterprise.context.ApplicationScoped;
 import org.acme.authenticationService.data.entity.UserRole;
 import org.acme.authenticationService.data.entity.UserRoleId;
 
-@Singleton
+@ApplicationScoped
 public class UserRoleRepository implements PanacheRepositoryBase<UserRole, UserRoleId> {
 }

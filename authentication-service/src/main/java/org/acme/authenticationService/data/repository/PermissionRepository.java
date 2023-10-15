@@ -3,13 +3,13 @@ package org.acme.authenticationService.data.repository;
 import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Parameters;
 import io.smallrye.mutiny.Uni;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import org.acme.authenticationService.data.entity.Permission;
 import org.acme.authenticationService.data.entity.RolePermission;
 import org.jboss.logging.Logger;
 
-@Singleton
+@ApplicationScoped
 public class PermissionRepository implements PanacheRepositoryBase<Permission, String> {
 
     @Inject

@@ -1,6 +1,5 @@
 package org.acme.authenticationService.services;
 
-import com.acme.authorization.security.UserPrincipal;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.panache.common.Sort;
 import io.smallrye.mutiny.Uni;
