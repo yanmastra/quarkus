@@ -1,2 +1,7 @@
-package com.acme.authorization.provider;public interface HtmlErrorMapper {
+package com.acme.authorization.provider;
+
+import jakarta.ws.rs.core.Response;
+
+public interface HtmlErrorMapper {
+    Response getResponse(Throwable e);
 }

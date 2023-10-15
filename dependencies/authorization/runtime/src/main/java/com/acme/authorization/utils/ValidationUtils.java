@@ -1,4 +1,4 @@
-package pos.mahotama.retail.ioTools;
+package com.acme.authorization.utils;
 
 import java.util.regex.Pattern;
 
