@@ -14,10 +14,6 @@ public class ApplicationModel extends BaseModel {
     }
 
     public List<ApplicationJson> data;
-    public int page;
-    public int size;
-    public int totalData;
-    public String search;
     public boolean isAlert = false;
     public boolean isAlertSuccess;
     public String alertMessage;

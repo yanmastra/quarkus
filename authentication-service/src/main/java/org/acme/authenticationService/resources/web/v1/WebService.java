@@ -10,6 +10,7 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.acme.authenticationService.dao.ApplicationJson;
+import org.acme.authenticationService.dao.web.ApplicationDetailModel;
 import org.acme.authenticationService.dao.web.ApplicationModel;
 import org.acme.authenticationService.dao.web.Home;
 import org.acme.authenticationService.data.entity.Application;
@@ -20,7 +21,10 @@ import org.acme.authenticationService.data.repository.UserRepository;
 import org.acme.authenticationService.data.repository.UserRoleRepository;
 import org.acme.authenticationService.resources.web.WebUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Objects;
 
 @ApplicationScoped
@@ -37,6 +41,8 @@ public class WebService {
 
     @ConfigProperty(name = "application-name", defaultValue = "Example App")
     String appName;
+    @Inject
+    Logger logger;
 
     @WithTransaction
     public Uni<Home> getHomePageData(UserPrincipal principal) {
@@ -97,13 +103,14 @@ public class WebService {
         final PanacheQuery<Application> query = applicationPanacheQuery;
         return query.page(Page.of(page - 1, size))
                 .list().map(result -> result.stream().map(ApplicationJson::fromDto).toList())
-                .chain(result -> {
+                .map(result -> {
                     ApplicationModel model = WebUtils.createModel(new ApplicationModel(), appName);
+                    model.user = principal.getUser();
                     model.data = result;
                     model.page = page;
                     model.size = size;
                     model.search = search;
-                    return Uni.createFrom().item(model);
+                    return model;
                 })
                 .chain(model -> query.count().map(count -> {
                     model.totalData = count.intValue();
@@ -116,5 +123,39 @@ public class WebService {
         Application application = new Application(null, app.getName(), app.getDescription());
         application.setCreatedBy(principal.getUser().getUsername());
         return appRepo.persist(application).map(Objects::nonNull);
+    }
+
+    @WithTransaction
+    public Uni<ApplicationDetailModel> getApplicationDetailsModel(int page, int size, String appCode, String search, UserPrincipal userPrincipal) {
+        return appRepo.findById(appCode)
+                .map(application -> {
+                    ApplicationDetailModel model = WebUtils.createModel(new ApplicationDetailModel(), appName);
+                    model.user = userPrincipal.getUser();
+                    model.page = page;
+                    model.size = size;
+                    model.search = search;
+                    model.application = ApplicationJson.fromDto(application);
+                    return model;
+                })
+                .chain(model -> {
+                    PanacheQuery<Application> applicationPanacheQuery = appRepo.find("where parent.code=?1", model.application.getCode());
+                    Uni<ApplicationDetailModel> modelUni = applicationPanacheQuery.page(Page.of(page - 1, size)).list().map(list -> {
+                        try {
+                            model.data = list.stream().map(ApplicationJson::fromDto)
+                                    // to shorting the item by createdAt field with DESC and if there is any null value of createdAt it would be putted to the last
+                                    .sorted(Comparator.comparing(ApplicationJson::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                                    .toList();
+                        } catch (Exception e) {
+                            logger.error(e.getMessage(), e);
+                            model.data = new ArrayList<>();
+                        }
+                        return model;
+                    });
+                    modelUni = modelUni.chain(model1 -> applicationPanacheQuery.count().map(count -> {
+                        model.totalData = count.intValue();
+                        return model;
+                    }));
+                    return modelUni;
+                });
     }
 }

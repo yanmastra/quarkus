@@ -123,6 +123,7 @@ public class AuthorizationFilter implements ContainerRequestFilter {
     }
 
     private boolean isPublic(ContainerRequestContext context, String publicPath) {
+        if ("/*".equals(publicPath)) return true;
         String[] publicPaths = publicPath.split(",");
         return UriMatcher.isMatch(publicPaths, context.getUriInfo().getPath());
     }

@@ -16,6 +16,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.*;
 import org.acme.authenticationService.dao.ApplicationJson;
+import org.acme.authenticationService.dao.web.ApplicationDetailModel;
 import org.acme.authenticationService.dao.web.ApplicationModel;
 import org.acme.authenticationService.dao.web.Home;
 import org.acme.authenticationService.dao.web.Login;
@@ -35,6 +36,7 @@ public class WebResource {
         public static native TemplateInstance login(Login data);
         public static native TemplateInstance home(Home data);
         public static native TemplateInstance applications(ApplicationModel data);
+        public static native TemplateInstance applicationDetails(ApplicationDetailModel data);
     }
 
     @Inject
@@ -137,15 +139,25 @@ public class WebResource {
     @GET
     @Path("applications")
     @RolesAllowed({"VIEW_ALL"})
-    public Uni<Response> applications(@QueryParam("search") String search, @Context ContainerRequestContext context) {
+    public Uni<Response> applications(
+            @QueryParam("search") String search,
+            @QueryParam("page") Integer page,
+            @Context ContainerRequestContext context
+    ) {
         logger.info("SecurityContext:"+context.getClass().getName());
-        return webService.getApplicationModel(1, 20, search, UserPrincipal.valueOf(context))
+        if (page == null || page < 1) page = 1;
+
+        return webService.getApplicationModel(page, 20, search, UserPrincipal.valueOf(context))
                 .map(app -> {
                     Set<String> remove = new HashSet<>();
                     Map<String, Cookie> cookieMap = context.getCookies();
                     if (cookieMap != null) {
-                        String msg = cookieMap.get(Constants.COOKIE_MESSAGES).getValue();
-                        boolean success = "true".equals(cookieMap.get(Constants.COOKIE_MESSAGES_SUCCESS).getValue());
+                        Cookie msgCookie = cookieMap.get(Constants.COOKIE_MESSAGES);
+                        Cookie msgSuccess = cookieMap.get(Constants.COOKIE_MESSAGES_SUCCESS);
+
+                        String msg = msgCookie == null ? "" : msgCookie.getValue();
+                        boolean success = msgSuccess != null && "true".equals(msgSuccess.getValue());
+
                         remove.add(Constants.COOKIE_MESSAGES);
                         remove.add(Constants.COOKIE_MESSAGES_SUCCESS);
 
@@ -174,5 +186,38 @@ public class WebResource {
                 });
     }
 
+    @GET
+    @Path("applications/{code}")
+    @RolesAllowed({"VIEW_ALL"})
+    public Uni<Response> applicationDetails(
+            @PathParam("code") String appCode,
+            @QueryParam("search") String search,
+            @QueryParam("page") Integer page,
+            @Context ContainerRequestContext context
+    ) {
+        logger.info("SecurityContext:"+context.getClass().getName());
+        if (page == null || page < 1) page = 1;
+
+        return webService.getApplicationDetailsModel(page, 20, appCode, search, UserPrincipal.valueOf(context))
+                .map(app -> {
+                    Set<String> remove = new HashSet<>();
+                    Map<String, Cookie> cookieMap = context.getCookies();
+                    if (cookieMap != null) {
+                        Cookie msgCookie = cookieMap.get(Constants.COOKIE_MESSAGES);
+                        Cookie msgSuccess = cookieMap.get(Constants.COOKIE_MESSAGES_SUCCESS);
+
+                        String msg = msgCookie == null ? "" : msgCookie.getValue();
+                        boolean success = msgSuccess != null && "true".equals(msgSuccess.getValue());
+
+                        remove.add(Constants.COOKIE_MESSAGES);
+                        remove.add(Constants.COOKIE_MESSAGES_SUCCESS);
+
+                        app.isAlert = true;
+                        app.isAlertSuccess = success;
+                        app.alertMessage = msg;
+                    }
+                    return WebUtils.createOkResponse(null, Templates.applicationDetails(app), remove).build();
+                });
+    }
 
 }
