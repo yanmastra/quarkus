@@ -22,6 +22,11 @@ public class ResponseJson<E> {
         this.data = data;
     }
 
+    public ResponseJson(E data) {
+        this.data = data;
+        this.success = true;
+    }
+
     public boolean isSuccess() {
         return success;
     }

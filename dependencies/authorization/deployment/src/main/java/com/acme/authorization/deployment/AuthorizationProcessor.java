@@ -1,7 +1,9 @@
 package com.acme.authorization.deployment;
 
 import com.acme.authorization.provider.ErrorMapper;
+import com.acme.authorization.provider.RegisterCustomizeModule;
 import com.acme.authorization.security.AuthorizationFilter;
+import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.builditem.FeatureBuildItem;
 import io.quarkus.resteasy.reactive.spi.ContainerRequestFilterBuildItem;
@@ -32,5 +34,10 @@ class AuthorizationProcessor {
                 .setRegisterAsBean(true)
                 .setPriority(1)
                 .build();
+    }
+
+    @BuildStep
+    public AdditionalBeanBuildItem createAdditionalBeanBuildItem() {
+        return new AdditionalBeanBuildItem(RegisterCustomizeModule.class);
     }
 }
