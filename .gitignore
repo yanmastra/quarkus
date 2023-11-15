@@ -7,3 +7,5 @@
 **/**.zip
 **.cache
 **/production/**
+**.mysql
+docker

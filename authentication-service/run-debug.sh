@@ -2,7 +2,7 @@
 DIR=$(pwd)
 cd ..
 export $(grep -v "^$" docker_env.env | grep -v "^#" | xargs)
-export DB_NAME=$DB_NAME_03
+export DB_NAME=db_authentication
 docker compose up -d
 sleep 5
 cd dependencies/authorization || exit

@@ -25,7 +25,7 @@ docker run -d --name "$ARTIFACT_ID" \
 -e 'MYSQL_PASSWORD=password' \
 -e 'MYSQL_HOST=ql-mysql' \
 -e 'MYSQL_PORT=3306' \
--e 'DB_NAME=db_ql_authentication' \
+-e 'DB_NAME=db_authentication' \
 -e 'QUARKUS_HTTP_PORT=18080' \
 -e 'AUTH_SERVICE_CACHE_LOCATION=/var/lib/authentication-service' \
 -e 'AUTH_SERVICE_ACCESS_TOKEN_EXPIRED_IN=60' \

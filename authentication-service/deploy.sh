@@ -43,33 +43,5 @@ echo "DOCKER_NETWORK_NAME=\"Please fill\"" >> "$PROD_DIR/docker_env.env"
 
 echo "export \$(grep -v \"^\$\" docker_env.env | grep -v \"^#\" | xargs)" > "$PROD_DIR/run-native.sh"
 
-#os_type=""
-#if [[ "$OSTYPE" == "linux-gnu" ]]; then
-#    os_type="ubuntu"
-#elif [[ "$OSTYPE" == "darwin"* ]]; then
-#    os_type="mac"
-#fi
-#
-#echo " [*] OS Type is ${os_type}"
-#
-#if [[ "${os_type}" == "mac" ]]; then
-#    IP=$(ifconfig | grep 10.123.123.123)
-#elif [[ "${os_type}" == "ubuntu" ]]; then
-#    IP=$(ip a | grep 10.123.123.123)
-#fi
-#
-#if [[ -z "$IP" ]]; then
-#    if [[ ${os_type} == "mac" ]]; then
-#        echo "OS TYPE: macOS"
-#        sudo ifconfig lo0 alias 10.123.123.123
-#    elif [[ ${os_type} == "ubuntu" ]]; then
-#        echo "OS TYPE: Linux"
-#        sudo ip address add 10.123.123.123 dev lo
-#    else
-#        echo -e "${RED}Can't detect OS type, neither Linux nor macOS!${ENDCOLOR}"
-#        exit -1
-#    fi
-#fi
-
 echo "./${ARTIFACT_ID}-${PROJECT_VERSION}-runner" >> "$PROD_DIR/run-native.sh"
 chmod +x "$PROD_DIR/run-native.sh"
