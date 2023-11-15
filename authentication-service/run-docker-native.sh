@@ -15,12 +15,12 @@ sleep 5
 
 cd $DIR || exit
 
-docker container stop $ARTIFACT_ID
-docker container rm $ARTIFACT_ID
+#docker container stop $ARTIFACT_ID
+#docker container rm $ARTIFACT_ID
 
 docker run -d --name "$ARTIFACT_ID" \
 --network='ql' \
---volume='quarkus-learning-data:/var/lib/authentication-service:delegated' \
+--volume='./:/var/lib/authentication-service:delegated' \
 -e 'MYSQL_USERNAME=developer' \
 -e 'MYSQL_PASSWORD=password' \
 -e 'MYSQL_HOST=ql-mysql' \

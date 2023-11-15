@@ -21,6 +21,6 @@ mvn clean package -Pnative -DskipTests \
 -Dquarkus.container-image.build=true \
 -Dquarkus.container-image.group=$GROUP_ID \
 -Dquarkus.container-image.name=$ARTIFACT_ID \
--Dquarkus.container-image.tag=$PROJECT_VERSION -X
+-Dquarkus.container-image.tag=$PROJECT_VERSION
 
 docker tag $GROUP_ID/$ARTIFACT_ID:$PROJECT_VERSION $GROUP_ID/$ARTIFACT_ID:latest
