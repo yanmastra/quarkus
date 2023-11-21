@@ -1,13 +1,16 @@
 <?xml version="1.0"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
-         xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.acme</groupId>
   <artifactId>microservices</artifactId>
   <version>0.0.1</version>
   <packaging>pom</packaging>
-
+  <modules>
+    <module>product</module>
+    <module>cart</module>
+    <module>invoices</module>
+  </modules>
   <properties>
     <compiler-plugin.version>3.11.0</compiler-plugin.version>
     <maven.compiler.release>17</maven.compiler.release>
@@ -17,7 +20,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.2.3.Final</quarkus.platform.version>
+    <quarkus.platform.version>3.2.9.Final</quarkus.platform.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.0.0</surefire-plugin.version>
   </properties>
@@ -32,27 +35,17 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <modules>
-    <module>product</module>
-    <module>cart</module>
-    <module>invoices</module>
-  </modules>
-
   <dependencies>
-
     <dependency>
       <groupId>com.acme</groupId>
       <artifactId>authorization</artifactId>
       <version>0.0.1</version>
     </dependency>
-
     <dependency>
       <groupId>org.acme</groupId>
       <artifactId>crud-endpoint</artifactId>
       <version>0.0.1</version>
     </dependency>
-
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-agroal</artifactId>
@@ -78,10 +71,13 @@
       <artifactId>commons-lang3</artifactId>
       <version>3.12.0</version>
     </dependency>
-
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-reactive-messaging-kafka</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

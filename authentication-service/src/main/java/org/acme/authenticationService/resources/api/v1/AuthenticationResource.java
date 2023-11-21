@@ -31,8 +31,6 @@ public class AuthenticationResource {
         if (StringUtil.isNullOrEmpty(credential.username) || StringUtil.isNullOrEmpty(credential.password) || StringUtil.isNullOrEmpty(credential.appCode)) {
             throw new IllegalArgumentException("Incorrect credential, you should fill in the username, password, and appCode with the correct values");
         }
-
-        logger.info("request:"+credential);
         return authenticationService.authenticate(credential).map(response -> new ResponseJson<>(true, null, response));
     }
 

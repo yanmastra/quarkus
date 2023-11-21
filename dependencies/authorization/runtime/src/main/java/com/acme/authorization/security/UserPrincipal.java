@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.SecurityContext;
+import org.jboss.logging.Logger;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -21,6 +22,8 @@ public class UserPrincipal implements Principal {
     private final String appCode;
     @JsonProperty("access_token")
     private final String accessToken;
+
+    private static final Logger logger = Logger.getLogger(UserPrincipal.class.getName());
 
     public UserPrincipal(UserOnly user, List<String> allowedRoles, String appCode, String accessToken) {
         this.user = user;
@@ -39,7 +42,9 @@ public class UserPrincipal implements Principal {
     }
 
     public boolean isRoleAllowed(String roleCode){
-        return allowedRoles.contains(roleCode);
+        boolean result = allowedRoles.contains(roleCode);
+        if (result) return true;
+        throw new SecurityException("Access Denied!");
     }
 
     public String getAccessToken() {

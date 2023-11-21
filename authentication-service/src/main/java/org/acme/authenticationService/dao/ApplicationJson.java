@@ -10,6 +10,7 @@ import java.util.Date;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApplicationJson {
 
+    @RestForm("code")
     @JsonProperty("code")
     private String code;
     @RestForm("name")
@@ -161,5 +162,23 @@ public class ApplicationJson {
 
     public void setParentCode(String parentCode) {
         this.parentCode = parentCode;
+    }
+
+    @Override
+    public String toString() {
+        return "ApplicationJson{" +
+                "code='" + code + '\'' +
+                ", name='" + name + '\'' +
+                ", secretKey='" + secretKey + '\'' +
+                ", parentCode='" + parentCode + '\'' +
+                ", description='" + description + '\'' +
+                ", parent=" + parent +
+                ", createdAt=" + createdAt +
+                ", createdBy='" + createdBy + '\'' +
+                ", updatedAt=" + updatedAt +
+                ", updatedBy='" + updatedBy + '\'' +
+                ", deletedAt=" + deletedAt +
+                ", deletedBy='" + deletedBy + '\'' +
+                '}';
     }
 }

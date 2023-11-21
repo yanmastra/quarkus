@@ -3,7 +3,7 @@ package org.acme.authenticationService.dao.web;
 public class ErrorModel extends BaseModel{
     public int status;
     public String msg1;
-    public String msg2;
+    public String redirect;
 
     public ErrorModel() {
     }

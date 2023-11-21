@@ -25,6 +25,8 @@ public class SelfAuthorizer implements Authorizer {
             return TokenUtils.verifyAccessToken(accessToken, parser, objectMapper);
         } catch (ParseException | JsonProcessingException e) {
             throw new HttpException(HttpResponseStatus.BAD_REQUEST.code(), "Invalid Token");
+        } catch (HttpException e) {
+            throw e;
         } catch (Exception ex) {
             throw new HttpException(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), ex.getMessage());
         }

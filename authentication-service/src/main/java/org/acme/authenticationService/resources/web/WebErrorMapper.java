@@ -9,9 +9,12 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import org.acme.authenticationService.dao.web.ErrorModel;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
 
 @Singleton
 public class WebErrorMapper implements HtmlErrorMapper {
@@ -26,26 +29,38 @@ public class WebErrorMapper implements HtmlErrorMapper {
     @Inject
     ContainerRequestContext requestContext;
 
+    @Inject
+    Logger logger;
+
     @Override
     public Response getResponse(Throwable e) {
+        logger.warn("Handling error:"+e.getMessage());
+        int status = 500;
+        String messages = e.getMessage();
         if (e instanceof HttpException httpException) {
-            ErrorModel error = WebUtils.createModel(new ErrorModel(httpException.getStatusCode(), httpException.getMessage()), appName);
-            error.user = (UserPrincipal.valueOf(requestContext.getSecurityContext().getUserPrincipal())).getUser();
-            return Response.status(httpException.getStatusCode())
-                    .entity(Templates.notFound(error))
-                    .build();
+            status = httpException.getStatusCode();
         } else if (e instanceof WebApplicationException webApplicationException) {
-            ErrorModel error = WebUtils.createModel(new ErrorModel(webApplicationException.getResponse().getStatus(), webApplicationException.getMessage()), appName);
-            error.user = (UserPrincipal.valueOf(requestContext.getSecurityContext().getUserPrincipal())).getUser();
-            return Response.status(webApplicationException.getResponse().getStatus())
-                    .entity(Templates.notFound(error))
-                    .build();
-        } else {
-            ErrorModel error = WebUtils.createModel(new ErrorModel(500, e.getMessage()), appName);
-            error.user = (UserPrincipal.valueOf(requestContext.getSecurityContext().getUserPrincipal())).getUser();
-            return Response.status(500)
-                    .entity(Templates.notFound(error))
-                    .build();
+            status = webApplicationException.getResponse().getStatus();
+        } else if (e instanceof SecurityException) {
+            status = 403;
         }
+
+        ErrorModel error = new ErrorModel(status, messages);
+
+        try {
+            MultivaluedMap<String, String> params = requestContext.getUriInfo().getQueryParameters();
+            String redirect = params.getFirst("redirect");
+            if (StringUtils.isNotBlank(redirect))
+                error.redirect = redirect;
+        } catch (Exception ex){
+            logger.warn(ex.getMessage());
+        }
+
+        try {
+            error.user = (UserPrincipal.valueOf(requestContext.getSecurityContext().getUserPrincipal())).getUser();
+        } catch (Exception ex) {
+            logger.error(ex.getMessage(), ex);
+        }
+        return Response.status(status).entity(Templates.notFound(error)).build();
     }
 }

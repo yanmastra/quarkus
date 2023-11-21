@@ -79,6 +79,7 @@ public class SeedServices {
                                     String pass = PasswordGenerator.generatePassword(32, true);
                                     authUser.setPasswordTextPlain(pass);
                                     logger.info("ROOT PASSWORD:"+pass);
+                                    authUser.setVerified(true);
                                     entities.add(authUser);
                                     entities.add(new UserRole(authUser, role));
                                 } else {
@@ -109,6 +110,7 @@ public class SeedServices {
                 new Permission("SYSTEM", "CREATE_PERMISSION", "Create any Permission"),
                 new Permission("SYSTEM", "UPDATE_PERMISSION", "Update any Permission"),
                 new Permission("SYSTEM", "DELETE_PERMISSION", "Delete any Permission"),
+                new Permission("SYSTEM", "DELETE_APP", "Delete any Application"),
                 new Permission("SYSTEM", "CREATE_APP_ADMIN", "Create an Administrator for an Application"),
                 new Permission("SYSTEM", "VIEW_ALL_USER", "View All Users")
         ));

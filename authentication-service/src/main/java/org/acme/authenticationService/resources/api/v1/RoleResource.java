@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.Response;
 import org.acme.authenticationService.dao.RoleAddPermissionRequest;
 import org.acme.authenticationService.dao.RoleOnly;
 import org.acme.authenticationService.services.RoleService;
+import org.acme.authenticationService.services.Validator;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
@@ -75,7 +76,7 @@ public class RoleResource {
             return service.addPermission(context.getUserPrincipal().getAppCode(), code, data).map(response -> {
                 if (response != null) return Response.ok().entity(response).build();
                 else return Response.status(Response.Status.NOT_FOUND).build();
-            }).onFailure().invoke(e -> logger.error(e.getMessage(), e));
+            }).onFailure().transform(e -> new HttpException(500, e.getMessage(), e));
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             return Uni.createFrom().item(Response.status(Response.Status.NOT_FOUND).build());
@@ -88,6 +89,9 @@ public class RoleResource {
         try {
             role.setAppCode(context.getUserPrincipal().getAppCode());
             role.setCreatedBy(context.getUserPrincipal().getName());
+            if (!Validator.validateRole(role)) {
+                throw new IllegalArgumentException("Role code is not allowed");
+            }
 
             return service.create(role)
                     .onItem().transform(r -> Response.status(Response.Status.OK).entity(r).build())

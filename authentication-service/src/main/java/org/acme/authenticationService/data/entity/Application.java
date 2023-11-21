@@ -5,6 +5,7 @@ import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
 import jakarta.persistence.*;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.*;
 
 import java.io.Serializable;
@@ -13,12 +14,12 @@ import java.util.List;
 
 @Entity
 @Table(name = "application")
-@SQLDelete(sql = "UPDATE application SET deleted_at=NOW() WHERE id=?")
+@SQLDelete(sql = "UPDATE application SET deleted_at=NOW() WHERE code=?")
 @FilterDef(name = "deletedAppFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
 @Filter(name = "deletedAppFilter", condition = "deleted_at is not null = :isDeleted")
 public class Application extends PanacheEntityBase implements Serializable {
     @Id
-    @Column(length = 16, nullable = false)
+    @Column(length = 36, nullable = false)
     private String code;
     @Column(length = 128)
     private String name;
@@ -53,7 +54,8 @@ public class Application extends PanacheEntityBase implements Serializable {
 
     @PrePersist
     public void generateSecretKey() {
-        secretKey = PasswordGenerator.generatePassword(32, true);
+        if (StringUtils.isBlank(secretKey))
+            secretKey = PasswordGenerator.generatePassword(32, true);
     }
 
     public Application() {

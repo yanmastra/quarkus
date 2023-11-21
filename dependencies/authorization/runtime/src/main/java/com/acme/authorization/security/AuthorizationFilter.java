@@ -68,9 +68,8 @@ public class AuthorizationFilter implements ContainerRequestFilter {
             }
 
             if (!accept.contains(MediaType.APPLICATION_JSON)) {
-                URI uri = URI.create(defaultRedirect);
                 logger.info("authorizing:" + context.getUriInfo().getPath()+", from:"+userAgent+": false by accept type");
-                context.abortWith(Response.temporaryRedirect(uri).build());
+                redirect(context);
                 return;
             }
         }
@@ -88,6 +87,13 @@ public class AuthorizationFilter implements ContainerRequestFilter {
             logger.error(e.getMessage(), e);
             if (e instanceof HttpException httpException) {
                 logger.info("authorizing:" + context.getUriInfo().getPath()+", from:"+userAgent+": false by token");
+                if (httpException.getStatusCode() == 401 && !accept.contains(MediaType.APPLICATION_JSON)) {
+                    if (isPublic(context, publicPath) || defaultRedirect.equals(context.getUriInfo().getPath())) {
+                        context.setSecurityContext(new UserSecurityContext());
+                        return;
+                    } else redirect(context);
+                    return;
+                }
                 context.abortWith(Response.status(httpException.getStatusCode()).entity(new ResponseJson<>(false, httpException.getPayload())).build());
                 return;
             }
@@ -97,29 +103,28 @@ public class AuthorizationFilter implements ContainerRequestFilter {
         context.abortWith(Response.status(HttpResponseStatus.BAD_GATEWAY.code()).entity(new ResponseJson<>(false,"Unable to access authenticate/authorize server")).build());
     }
 
+    private void redirect(ContainerRequestContext context) {
+        URI uri = URI.create(defaultRedirect);
+        context.abortWith(Response.temporaryRedirect(uri).build());
+    }
+
     private UserPrincipal authorize(String accessToken) {
-        TokenType type = checkType(accessToken);
+        Authorizer authorizerPrior = null;
 
-        if (type == TokenType.DEFAULT) {
-            Authorizer authorizerPrior = null;
-
-            try (Stream<Authorizer> authorizerStream = authorizerInstance.stream()){
-                authorizerPrior = authorizerStream.findFirst().orElse(null);
-            } catch (Exception e){
-                //
-            }
-
-            if (authorizerPrior == null) {
-                authorizerPrior = new HttpAuthorizer.Builder()
-                        .setObjectMapper(objectMapper)
-                        .setUrl(authorizationUrl)
-                        .build();
-            }
-
-            return authorizerPrior.authorize(accessToken);
-        } else {
-            throw new HttpException(HttpResponseStatus.BAD_REQUEST.code(), "Token type is not supported yet");
+        try (Stream<Authorizer> authorizerStream = authorizerInstance.stream()){
+            authorizerPrior = authorizerStream.findFirst().orElse(null);
+        } catch (Exception e){
+            logger.error(e.getMessage(), e);
         }
+
+        if (authorizerPrior == null) {
+            authorizerPrior = new HttpAuthorizer.Builder()
+                    .setObjectMapper(objectMapper)
+                    .setUrl(authorizationUrl)
+                    .build();
+        }
+
+        return authorizerPrior.authorize(accessToken);
     }
 
     private boolean isPublic(ContainerRequestContext context, String publicPath) {

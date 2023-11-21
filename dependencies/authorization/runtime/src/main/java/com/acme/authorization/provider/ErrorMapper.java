@@ -1,12 +1,11 @@
 package com.acme.authorization.provider;
 
-import com.acme.authorization.json.ResponseJson;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.json.Json;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
@@ -35,51 +34,38 @@ public class ErrorMapper implements ResteasyReactiveAsyncExceptionMapper<Excepti
     public void asyncResponse(Exception exception, AsyncExceptionMapperContext context) {
         logger.error(requestContext.getUriInfo().getPath()+"::"+exception.getMessage(), exception);
 
+        String message = null;
+        int status = 500;
+
         MultivaluedMap<String, String> headers = requestContext.getHeaders();
         if (headers.containsKey(HttpHeaders.ACCEPT) && headers.getFirst(HttpHeaders.ACCEPT).equals(MediaType.APPLICATION_JSON)) {
-            ResponseJson<?> responseJson = new ResponseJson<>(
-                    false,
-                    exception.getCause() != null ? exception.getCause().getMessage() : exception.getMessage()
-            );
-            Response response = null;
-            try {
-                if (exception instanceof HttpException httpException) {
-
-                    responseJson.setMessage(httpException.getPayload());
-                    response = Response.status(httpException.getStatusCode()).entity(objectMapper.writeValueAsString(responseJson)).build();
-                }
-
-                if (response == null)
-                    response = Response.status(500).entity(objectMapper.writeValueAsString(responseJson)).build();
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-            context.setResponse(response);
-
-        } else {
-            try (Stream<HtmlErrorMapper> errorMapperStream = htmlErrorMappers.stream()) {
-                errorMapperStream.findFirst().ifPresent(htmlErrorMapper -> context.setResponse(htmlErrorMapper.getResponse(exception)));
-            } catch (Exception e){
-                logger.error(e.getMessage(), e);
-            }
-        }
-    }
-
-    @Override
-    public Response toResponse(Exception exception) {
-        logger.error(exception.getMessage(), exception);
-        ResponseJson<?> responseJson = new ResponseJson<>(
-                false,
-                exception.getCause() != null ? exception.getCause().getMessage() : exception.getMessage()
-        );
-        try {
             if (exception instanceof HttpException httpException) {
-                responseJson.setMessage(httpException.getPayload());
-                return Response.status(httpException.getStatusCode()).entity(objectMapper.writeValueAsString(responseJson)).build();
-            } else
-                return Response.status(500).entity(objectMapper.writeValueAsString(responseJson)).build();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+                message = httpException.getPayload();
+                status = httpException.getStatusCode();
+            } else if (exception instanceof SecurityException securityException) {
+                message = securityException.getMessage();
+                status = 403;
+            } else {
+                Throwable cause = exception.getCause();
+                message = cause == null ? exception.getMessage() : cause.getMessage();
+            }
+
+            String responsePayload = Json.createObjectBuilder()
+                    .add("success", false)
+                    .add("message", message)
+                    .build().toString();
+
+            context.setResponse(Response.status(status)
+                    .entity(responsePayload)
+                    .type(MediaType.APPLICATION_JSON)
+                    .build());
+            return;
+        }
+
+        try (Stream<HtmlErrorMapper> errorMapperStream = htmlErrorMappers.stream()) {
+            errorMapperStream.findFirst().ifPresent(htmlErrorMapper -> context.setResponse(htmlErrorMapper.getResponse(exception, )));
+        } catch (Exception e){
+            logger.error(e.getMessage(), e);
         }
     }
 }

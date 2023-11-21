@@ -16,10 +16,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.*;
 import org.acme.authenticationService.dao.ApplicationJson;
-import org.acme.authenticationService.dao.web.ApplicationDetailModel;
-import org.acme.authenticationService.dao.web.ApplicationModel;
-import org.acme.authenticationService.dao.web.Home;
-import org.acme.authenticationService.dao.web.Login;
+import org.acme.authenticationService.dao.web.*;
 import org.acme.authenticationService.resources.web.WebUtils;
 import org.acme.authenticationService.services.AuthenticationService;
 import org.apache.commons.lang3.time.DateUtils;
@@ -37,6 +34,7 @@ public class WebResource {
         public static native TemplateInstance home(Home data);
         public static native TemplateInstance applications(ApplicationModel data);
         public static native TemplateInstance applicationDetails(ApplicationDetailModel data);
+        public static native TemplateInstance applicationForm(BaseModel data);
     }
 
     @Inject
@@ -131,7 +129,6 @@ public class WebResource {
     @Path("home")
     @RolesAllowed({"VIEW_ALL"})
     public Uni<Response> home(@Context SecurityContext context) {
-        logger.info("SecurityContext:"+context.getClass().getName());
         return webService.getHomePageData(UserPrincipal.valueOf(context))
                 .map(home -> Response.ok(Templates.home(home)).build());
     }
@@ -144,7 +141,6 @@ public class WebResource {
             @QueryParam("page") Integer page,
             @Context ContainerRequestContext context
     ) {
-        logger.info("SecurityContext:"+context.getClass().getName());
         if (page == null || page < 1) page = 1;
 
         return webService.getApplicationModel(page, 20, search, UserPrincipal.valueOf(context))
@@ -161,7 +157,7 @@ public class WebResource {
                         remove.add(Constants.COOKIE_MESSAGES);
                         remove.add(Constants.COOKIE_MESSAGES_SUCCESS);
 
-                        app.isAlert = true;
+                        app.isAlert = msgCookie != null;
                         app.isAlertSuccess = success;
                         app.alertMessage = msg;
                     }
@@ -172,9 +168,11 @@ public class WebResource {
     @POST
     @Path("applications")
     @RolesAllowed({"CREATE_APP"})
-    public Uni<Response> createApplication(ApplicationJson app, @Context ContainerRequestContext context) {
+    public Uni<Response> createApplication(@BeanParam ApplicationJson app, @Context ContainerRequestContext context) {
+        logger.info("received:"+app);
         return webService.createApp(app, UserPrincipal.valueOf(context))
-                .map(result -> {
+                .onItem()
+                .transform(result -> {
                     String message;
                     if (result) message = "Application has been created";
                     else message = "Failed to save application";
@@ -183,6 +181,13 @@ public class WebResource {
                     messages.put(Constants.COOKIE_MESSAGES, message);
                     messages.put(Constants.COOKIE_MESSAGES_SUCCESS, result+"");
                     return WebUtils.createRedirectResponse(messages, context.getUriInfo().getPath()).build();
+                })
+                .onFailure()
+                .recoverWithItem(throwable -> {
+                    Map<String, String> messages = new HashMap<>();
+                    messages.put(Constants.COOKIE_MESSAGES, "Failed to create application due to error: "+throwable.getMessage());
+                    messages.put(Constants.COOKIE_MESSAGES_SUCCESS, false+"");
+                    return WebUtils.createRedirectResponse(messages, "/web/v1/applications/form").build();
                 });
     }
 
@@ -195,7 +200,7 @@ public class WebResource {
             @QueryParam("page") Integer page,
             @Context ContainerRequestContext context
     ) {
-        logger.info("SecurityContext:"+context.getClass().getName());
+//        logger.info("SecurityContext:"+context.getClass().getName());
         if (page == null || page < 1) page = 1;
 
         return webService.getApplicationDetailsModel(page, 20, appCode, search, UserPrincipal.valueOf(context))
@@ -217,6 +222,66 @@ public class WebResource {
                         app.alertMessage = msg;
                     }
                     return WebUtils.createOkResponse(null, Templates.applicationDetails(app), remove).build();
+                });
+    }
+
+    @GET
+    @Path("applications/form")
+    @RolesAllowed({"CREATE_APP"})
+    public Uni<Response> applicationForm(
+            @Context ContainerRequestContext context
+    ) {
+        UserPrincipal principal = UserPrincipal.valueOf(context);
+        BaseModel model = WebUtils.createModel(new BaseModel(principal.getUser(), principal.getAppCode()), principal.getAppCode());
+        return Uni.createFrom().item(model)
+                .map(baseModel -> {
+
+                    Set<String> remove = new HashSet<>();
+                    Map<String, Cookie> cookieMap = context.getCookies();
+                    if (cookieMap != null) {
+                        Cookie msgCookie = cookieMap.get(Constants.COOKIE_MESSAGES);
+                        Cookie msgSuccess = cookieMap.get(Constants.COOKIE_MESSAGES_SUCCESS);
+
+                        String msg = msgCookie == null ? "" : msgCookie.getValue();
+                        boolean success = msgSuccess != null && "true".equals(msgSuccess.getValue());
+
+                        remove.add(Constants.COOKIE_MESSAGES);
+                        remove.add(Constants.COOKIE_MESSAGES_SUCCESS);
+
+                        baseModel.isAlert = msgCookie != null;
+                        baseModel.isAlertSuccess = success;
+                        baseModel.alertMessage = msg;
+                    }
+                    return WebUtils.createOkResponse(null, Templates.applicationForm(baseModel), remove).build();
+                });
+    }
+
+    @GET
+    @Path("applications/delete/{code}")
+    @RolesAllowed({"DELETE_APP"})
+    public Uni<Response> applicationForm(
+            @PathParam("code") String appCode,
+            @Context ContainerRequestContext context
+    ) {
+        return webService.deleteApplication(appCode, context.getSecurityContext().getUserPrincipal().getName())
+                .onItem()
+                .transform(result -> {
+                    logger.error("result:"+result);
+                    String message;
+                    if (result) message = "Application has been deleted";
+                    else message = "Failed to delete application";
+
+                    Map<String, String> messages = new HashMap<>();
+                    messages.put(Constants.COOKIE_MESSAGES, message);
+                    messages.put(Constants.COOKIE_MESSAGES_SUCCESS, result+"");
+                    return WebUtils.createRedirectResponse(messages, "/web/v1/applications").build();
+                })
+                .onFailure()
+                .recoverWithItem(throwable -> {
+                    Map<String, String> messages = new HashMap<>();
+                    messages.put(Constants.COOKIE_MESSAGES, "Failed to delete application due to error: "+throwable.getMessage());
+                    messages.put(Constants.COOKIE_MESSAGES_SUCCESS, false+"");
+                    return WebUtils.createRedirectResponse(messages, "/web/v1/applications").build();
                 });
     }
 

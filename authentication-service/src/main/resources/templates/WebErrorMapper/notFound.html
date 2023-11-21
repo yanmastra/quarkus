@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AdminLTE 3 | 404 Page not found</title>
+  <title>{data.status} {data.msg1}</title>
 
   <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -147,7 +147,7 @@
       <div class="container-fluid">
         <div class="row mb-2">
           <div class="col-sm-6">
-            <h1>404 Error Page</h1>
+            <h1>{data.status} Error</h1>
           </div>
           <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
@@ -178,7 +178,11 @@
           {#if data.user != null}
           <p>
             We could not process your request.
+            {#if data.redirect != null}
+            Meanwhile, you may <a href="{data.redirect}">back to previous page</a> or try using the search form.
+            {#else}
             Meanwhile, you may <a href="/web/v1/home">return to dashboard</a> or try using the search form.
+            {/if}
           </p>
 
           <form class="search-form" action="/web/v1/search" method="get">

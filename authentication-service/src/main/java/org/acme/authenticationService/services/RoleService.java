@@ -79,6 +79,9 @@ public class RoleService {
             Set<String> existing = role.getPermissions().stream().map(r -> r.getPermission().getCode()).collect(Collectors.toSet());
             for (Permission p: request.getPermissions()) {
                 if (!existing.contains(p.getCode())) {
+                    if (!Validator.validatePermission(p)) {
+                        throw new IllegalArgumentException("Role code is not allowed");
+                    }
                     rp.add(new RolePermission(role, p.toDTO()));
                 }
             }

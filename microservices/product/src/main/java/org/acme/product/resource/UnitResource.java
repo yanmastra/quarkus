@@ -5,15 +5,21 @@ import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 import org.acme.crud.endpoint.CrudEndpoint;
 import org.acme.product.data.entity.Unit;
 import org.acme.product.data.repository.UnitRepository;
+import org.jboss.logging.Logger;
 
 @Path("/api/v1/unit")
 public class UnitResource  extends CrudEndpoint<Unit, Unit> {
 
     @Inject
     UnitRepository repository;
+    @Inject
+    Logger logger;
+
 
     @Override
     protected PanacheRepositoryBase<Unit, String> getRepository() {
@@ -34,5 +40,11 @@ public class UnitResource  extends CrudEndpoint<Unit, Unit> {
     protected Uni<Unit> update(Unit entity, Unit uni) {
         entity.setName(uni.getName());
         return Uni.createFrom().item(entity);
+    }
+
+    @Override
+    public Uni<Response> create(Unit unit, SecurityContext context) {
+        logger.info(unit.getName());
+        return super.create(unit, context);
     }
 }
