@@ -8,10 +8,13 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.runtime.util.StringUtil;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.handler.HttpException;
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MediaType;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HttpAuthorizer implements Authorizer {
 
@@ -19,14 +22,19 @@ public class HttpAuthorizer implements Authorizer {
     private ObjectMapper objectMapper;
     private final Logger logger = Logger.getLogger(HttpAuthorizer.class);
 
+    private boolean showErrorLog = true;
+
     @Override
     public UserPrincipal authorize(String accessToken) {
         try {
-            String response = UrlUtils.call(HttpMethod.GET, authorizationUrl, null, Collections.singletonMap("Authorization", accessToken));
+            Map<String, String> headers = new HashMap<>();
+            headers.put(HttpHeaders.AUTHORIZATION, accessToken);
+            headers.put(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON);
+            String response = UrlUtils.call(HttpMethod.GET, authorizationUrl, null, headers, showErrorLog);
             ResponseJson<UserPrincipal> responseJson = objectMapper.readValue(response, new TypeReference<>(){});
             return responseJson.getData();
         } catch (IOException e) {
-            logger.error(e.getMessage(), e);
+            if (showErrorLog) logger.error(e.getMessage(), e);
         }
         throw new HttpException(HttpResponseStatus.UNAUTHORIZED.code(), "Unauthorized");
     }
@@ -50,6 +58,11 @@ public class HttpAuthorizer implements Authorizer {
 
         public Builder setObjectMapper(ObjectMapper objectMapper) {
             this.authorizer.objectMapper = objectMapper;
+            return this;
+        }
+
+        public Builder isShowErrorLog(boolean b) {
+            this.authorizer.showErrorLog = b;
             return this;
         }
 

@@ -1,4 +1,3 @@
 db_authentication
-db_products
-db_carts
-db_invoices
+db_inventories
+db_orders

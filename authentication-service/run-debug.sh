@@ -6,9 +6,15 @@ export DB_NAME=db_authentication
 docker compose up -d
 sleep 5
 cd dependencies/authorization || exit
-mvn clean
-mvn clean install -DskipTests
-sleep 3
+
+if [ -d "target" ]; then
+    echo "Already build"
+else
+  mvn clean
+  mvn clean install -DskipTests
+  sleep 3
+fi
+
 cd $DIR || exit
 
 export DEBUG=15005
@@ -18,5 +24,4 @@ export AUTHORIZATION_DEFAULT_REDIRECT="/web/v1/auth"
 export AUTHORIZATION_PUBLIC_PATH="/api/v1/auth/*,/web/v1/auth,/web/v1/auth/*,/favicon.ico,/"
 export AUTHORIZATION_SERVICE_URL="http://localhost:10001/api/v1/auth/authorize"
 
-mvn clean
-mvn quarkus:dev -Ddebug=$DEBUG
+mvn clean quarkus:dev -Ddebug=$DEBUG

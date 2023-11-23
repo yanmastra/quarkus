@@ -19,6 +19,7 @@ if [[ -z "$IP" ]]; then
     if [[ ${os_type} == "mac" ]]; then
         echo "OS TYPE: macOS"
         sudo ifconfig lo0 alias 10.123.123.123
+        echo "sudo ifconfig lo0 alias 10.123.123.123"
     elif [[ ${os_type} == "ubuntu" ]]; then
         echo "OS TYPE: Linux"
         sudo ip address add 10.123.123.123 dev lo

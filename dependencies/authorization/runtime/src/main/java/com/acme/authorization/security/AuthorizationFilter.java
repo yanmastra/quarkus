@@ -42,6 +42,8 @@ public class AuthorizationFilter implements ContainerRequestFilter {
     @Inject
     Instance<Authorizer> authorizerInstance;
 
+    private Authorizer defaultAuthorizerPrior = null;
+
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
         String userAgent = "";
@@ -118,13 +120,21 @@ public class AuthorizationFilter implements ContainerRequestFilter {
         }
 
         if (authorizerPrior == null) {
-            authorizerPrior = new HttpAuthorizer.Builder()
-                    .setObjectMapper(objectMapper)
-                    .setUrl(authorizationUrl)
-                    .build();
+            authorizerPrior = getDefaultAuthorizerPrior();
         }
 
         return authorizerPrior.authorize(accessToken);
+    }
+
+    private Authorizer getDefaultAuthorizerPrior() {
+        if (defaultAuthorizerPrior == null) {
+            defaultAuthorizerPrior = new HttpAuthorizer.Builder()
+                    .setObjectMapper(objectMapper)
+                    .setUrl(authorizationUrl)
+                    .isShowErrorLog(true)
+                    .build();
+        }
+        return defaultAuthorizerPrior;
     }
 
     private boolean isPublic(ContainerRequestContext context, String publicPath) {

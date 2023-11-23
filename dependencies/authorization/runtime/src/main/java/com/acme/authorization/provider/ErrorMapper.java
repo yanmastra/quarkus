@@ -63,7 +63,7 @@ public class ErrorMapper implements ResteasyReactiveAsyncExceptionMapper<Excepti
         }
 
         try (Stream<HtmlErrorMapper> errorMapperStream = htmlErrorMappers.stream()) {
-            errorMapperStream.findFirst().ifPresent(htmlErrorMapper -> context.setResponse(htmlErrorMapper.getResponse(exception, )));
+            errorMapperStream.findFirst().ifPresent(htmlErrorMapper -> context.setResponse(htmlErrorMapper.getResponse(exception)));
         } catch (Exception e){
             logger.error(e.getMessage(), e);
         }

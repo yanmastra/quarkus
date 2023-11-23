@@ -19,9 +19,12 @@ public class UrlUtils {
     }
 
     private static final Map<String, URL> urlMap = new HashMap<>();
-    private static Logger logger = Logger.getLogger(UrlUtils.class.getName());
+    private static final Logger logger = Logger.getLogger(UrlUtils.class.getName());
 
     public static String call(HttpMethod method, String stringUrl, String content, Map<String, String> headers) throws IOException {
+        return call(method, stringUrl, content, headers, false);
+    }
+    public static String call(HttpMethod method, String stringUrl, String content, Map<String, String> headers, boolean showError) throws IOException {
 
         URL url = null;
         if (urlMap.containsKey(stringUrl)) {
@@ -51,30 +54,23 @@ public class UrlUtils {
             statusCode = connection.getResponseCode();
 
             if (statusCode == 200) {
-                try (InputStream is = connection.getInputStream()) {
-                    try (BufferedReader in = new BufferedReader(new InputStreamReader(is))) {
-                        StringBuilder respContent = new StringBuilder();
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    StringBuilder respContent = new StringBuilder();
 
-                        String line;
-                        while ((line = in.readLine()) != null) {
-                            respContent.append(line);
-                        }
-                        in.close();
-                        is.close();
-                        connection.close();
-                        return respContent.toString();
-                    } catch (Exception e) {
-                        logger.error(e.getMessage(), e);
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        respContent.append(line);
                     }
+                    return respContent.toString();
                 } catch (Exception e) {
-                    logger.error(e.getMessage(), e);
+                    if (showError) logger.error(e.getMessage(), e);
                 }
             } else {
-                logger.error("close: " + statusCode);
-                connection.close();
+                if (showError) logger.error("status: " + statusCode);
             }
         } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            if (showError) logger.error(e.getMessage(), e);
+            else logger.error(e.getMessage());
             throw new HttpException(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), e.getMessage(), e);
         }
         throw new HttpException(statusCode, "Unauthorized");
@@ -90,7 +86,7 @@ public class UrlUtils {
 
         @Override
         public void close() throws Exception {
-            logger.error("closing connection");
+//            logger.error("closing connection");
             connection.disconnect();
         }
 

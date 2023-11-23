@@ -52,7 +52,7 @@ public class WebService {
         return Uni.createFrom().item(principal)
                 .chain(ctx -> {
                     if (ctx.getAppCode().equals("SYSTEM")) {
-                        Uni<Home> homeUni = appRepo.count().map(count -> {
+                        return appRepo.count().map(count -> {
                             Home home = WebUtils.createModel(new Home(), appName);
                             home.applicationCount = count;
                             return home;
@@ -60,10 +60,9 @@ public class WebService {
                             home.userCount = uCount;
                             return home;
                         }));
-                        return homeUni;
                     } else {
                         String appCode = ctx.getAppCode();
-                        Uni<Home> homeUni = appRepo.find("where code=?1", appCode).firstResult().chain(
+                        return appRepo.find("where code=?1", appCode).firstResult().chain(
                                 app -> appRepo.count("where parent=?1 and deletedAt is null", app).map(count -> {
                                     Home home = WebUtils.createModel(new Home(), app.getName());
                                     home.applicationCount = count;
@@ -79,7 +78,6 @@ public class WebService {
                                     home.userCount = userCount;
                                     return home;
                                 }));
-                        return homeUni;
                     }
                 });
     }

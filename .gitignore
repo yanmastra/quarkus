@@ -8,4 +8,4 @@
 **.cache
 **/production/**
 **.mysql
-docker
+./docker

@@ -50,4 +50,13 @@ public class ResponseJson<E> {
     public void setData(E data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return "ResponseJson{" +
+                "success=" + success +
+                ", message='" + message + '\'' +
+                ", data=" + data +
+                '}';
+    }
 }

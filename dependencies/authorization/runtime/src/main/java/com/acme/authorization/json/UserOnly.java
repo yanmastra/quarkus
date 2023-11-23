@@ -1,11 +1,14 @@
 package com.acme.authorization.json;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserOnly extends User {
 
     public UserOnly() {
@@ -18,6 +21,7 @@ public class UserOnly extends User {
     @JsonProperty("roles_ids")
     private Map<String, List<String>> rolesIds = new HashMap<>();
 
+    @JsonIgnore
     public Map<String, List<String>> getRolesIds() {
         return rolesIds;
     }
