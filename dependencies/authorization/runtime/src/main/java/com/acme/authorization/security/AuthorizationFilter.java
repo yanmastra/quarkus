@@ -85,16 +85,21 @@ public class AuthorizationFilter implements ContainerRequestFilter {
             logger.info("authorizing:" + context.getUriInfo().getPath()+", from:"+userAgent+": true");
             context.setSecurityContext(new UserSecurityContext(principal));
             return;
-        }catch (Throwable e) {
+        }catch (Exception e) {
             logger.error(e.getMessage(), e);
             if (e instanceof HttpException httpException) {
                 logger.info("authorizing:" + context.getUriInfo().getPath()+", from:"+userAgent+": false by token");
-                if (httpException.getStatusCode() == 401 && !accept.contains(MediaType.APPLICATION_JSON)) {
-                    if (isPublic(context, publicPath) || defaultRedirect.equals(context.getUriInfo().getPath())) {
+                if (isPublic(context, publicPath)) {
+                    if (httpException.getStatusCode() == 401 && !accept.contains(MediaType.APPLICATION_JSON)) {
+                        if (defaultRedirect.equals(context.getUriInfo().getPath())) {
+                            context.setSecurityContext(new UserSecurityContext());
+                            return;
+                        } else redirect(context);
+                        return;
+                    } else {
                         context.setSecurityContext(new UserSecurityContext());
                         return;
-                    } else redirect(context);
-                    return;
+                    }
                 }
                 context.abortWith(Response.status(httpException.getStatusCode()).entity(new ResponseJson<>(false, httpException.getPayload())).build());
                 return;

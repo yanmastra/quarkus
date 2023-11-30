@@ -26,18 +26,26 @@ public class JsonUtils {
     public static ObjectMapper getObjectMapper() {
         if (objectMapper == null) {
             objectMapper = new ObjectMapper();
-            objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-            objectMapper.configure(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS, false);
-            objectMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-
-            SimpleModule module = new SimpleModule();
-            module.addDeserializer(UserPrincipal.class, new UserPrincipalDeserializer());
-            objectMapper.registerModule(module);
+            configure(objectMapper);
         }
-
         return objectMapper;
+    }
+
+    public static void setObjectMapper(ObjectMapper objectMapper) {
+        JsonUtils.objectMapper = objectMapper;
+        configure(JsonUtils.objectMapper);
+    }
+
+    private static void configure(ObjectMapper objectMapper) {
+        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        objectMapper.configure(SerializationFeature.FAIL_ON_UNWRAPPED_TYPE_IDENTIFIERS, false);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
+
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(UserPrincipal.class, new UserPrincipalDeserializer());
+        objectMapper.registerModule(module);
     }
 
     public static String toJson(Object object, boolean throwException) {

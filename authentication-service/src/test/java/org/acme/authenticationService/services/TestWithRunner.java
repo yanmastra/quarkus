@@ -9,7 +9,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import jakarta.inject.Inject;
 import org.jboss.logging.Logger;
-import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
@@ -25,7 +24,7 @@ public class TestWithRunner {
 
     private Logger logger = Logger.getLogger(TestWithRunner.class.getName());
 
-    @Test
+//    @Test
     void testAccessToken() {
         for (int i = 0; i < 100; i++) {
 

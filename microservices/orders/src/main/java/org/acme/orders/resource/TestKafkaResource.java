@@ -11,14 +11,15 @@ import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.jboss.logging.Logger;
 
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 @Path("api/v1/test_kafka")
 public class TestKafkaResource {
 
     @Inject
-    @Channel("inventory-stock")
-    Emitter<MessagingQuote<String>> inventoryStockChannel;
+    @Channel("inventory")
+    Emitter<MessagingQuote<Map<String, Object>>> inventoryStockChannel;
 
     @Inject
     ObjectMapper objectMapper;
@@ -26,7 +27,7 @@ public class TestKafkaResource {
     Logger logger;
 
     @POST
-    public Uni<ResponseJson<String>> sendMessageKafka(MessagingQuote<String> quote) {
+    public Uni<ResponseJson<String>> sendMessageKafka(MessagingQuote<Map<String, Object>> quote) {
         try {
             CompletionStage<Void> result  = inventoryStockChannel.send(quote);
             return Uni.createFrom().item(new ResponseJson<>(true, "message sent"));

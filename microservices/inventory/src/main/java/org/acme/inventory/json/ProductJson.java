@@ -3,6 +3,7 @@ package org.acme.inventory.json;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.acme.inventory.data.entity.Category;
 import org.acme.inventory.data.entity.Product;
 import org.acme.inventory.data.entity.Unit;
 import org.apache.commons.lang3.StringUtils;
@@ -38,42 +39,49 @@ public class ProductJson {
     private String unitId;
     @JsonProperty("unit_name")
     private String unitName;
+    @JsonProperty("category_id")
+    private String categoryId;
+    @JsonProperty("category_name")
+    private String categoryName;
 
     public ProductJson(){}
 
-    public ProductJson(String id, String code, String name, String imageUrl, BigDecimal price, BigDecimal cogs, Long stock, Long stockOnHold, Long stockOutstanding) {
-        this.id = id;
-        this.code = code;
-        this.name = name;
-        this.imageUrl = imageUrl;
-        this.price = price;
-        this.cogs = cogs;
-        this.stock = stock;
-        this.stockOnHold = stockOnHold;
-        this.stockOutstanding = stockOutstanding;
+    public ProductJson(Product product) {
+        this.id = product.getId();
+        this.code = product.getCode();
+        this.name = product.getName();
+        this.imageUrl = product.getImageUrl();
+        this.price = product.getPrice();
+        this.cogs = product.getCogs();
+        this.stock = product.getStock();
+        this.stockOnHold = product.getStockOnHold();
+        this.stockOutstanding = product.getStockOutstanding();
+
+        Unit uni = product.getUnit();
+        if (uni != null) {
+            this.unitId = uni.getId();
+            this.unitName = uni.getName();
+        }
+
+        Category category = product.getCategory();
+        if (category != null) {
+            this.categoryId = category.getId();
+            this.categoryName = category.getName();
+        }
     }
 
     public static ProductJson fromEntity(Product product) {
-        ProductJson json = new ProductJson(product.getId(),
-                product.getCode(),
-                product.getName(),
-                product.getImageUrl(),
-                product.getPrice(),
-                product.getCogs(),
-                product.getStock(),
-                product.getStockOnHold(),
-                product.getStockOutstanding());
-        if (product.getUnit() != null) {
-            json.setUnitId(product.getUnit().getId());
-            json.setUnitName(product.getUnit().getName());
-        }
-        return json;
+        return new ProductJson(product);
     }
 
     public Product toEntity() {
         Product product = new Product(getId(), getCode(), getName(), getImageUrl(), getPrice(), getCogs(), getStock(), getStockOnHold(), getStockOutstanding());
         if (StringUtils.isNotBlank(getUnitId())) {
             product.setUnit(new Unit(getUnitId(), getUnitName()));
+        }
+
+        if (StringUtils.isNotBlank(getCategoryId())) {
+            product.setCategory(new Category(getCategoryId(), getCategoryName()));
         }
         return product;
     }
@@ -168,12 +176,31 @@ public class ProductJson {
         this.unitId = unitId;
     }
 
+    @JsonIgnore
     public String getUnitName() {
         return unitName;
     }
 
     public void setUnitName(String unitName) {
         this.unitName = unitName;
+    }
+
+    @JsonIgnore
+    public String getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(String categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    @JsonIgnore
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 
     @Override
@@ -190,6 +217,8 @@ public class ProductJson {
                 ", stockOutstanding=" + stockOutstanding +
                 ", unitId='" + unitId + '\'' +
                 ", unitName='" + unitName + '\'' +
+                ", categoryId='" + categoryId + '\'' +
+                ", categoryName='" + categoryName + '\'' +
                 '}';
     }
 }

@@ -12,10 +12,19 @@ public class Category extends CrudableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(length = 36, nullable = false)
+    @JsonProperty("id")
     private String id;
     @Column(length = 128)
     @JsonProperty("name")
     private String name;
+
+    public Category(String id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public Category() {
+    }
 
     @JsonIgnore
     @Override

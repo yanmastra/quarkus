@@ -35,7 +35,7 @@ public class Role extends PanacheEntityBase implements Serializable {
     @Column(length = 128)
     private String description;
 
-    @Column(name = "app_code", length = 16, nullable = false)
+    @Column(name = "app_code", length = 36, nullable = false)
     private String appCode;
     @Column(name = "code", length = 36, nullable = false)
     private String code;

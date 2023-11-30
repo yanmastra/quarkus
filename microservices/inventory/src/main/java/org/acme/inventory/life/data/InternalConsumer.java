@@ -7,6 +7,7 @@ import org.acme.microservices.common.messaging.MessagingQuote;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.jboss.logging.Logger;
 
+import java.util.Map;
 import java.util.Random;
 
 @ApplicationScoped
@@ -17,9 +18,9 @@ public class InternalConsumer {
     @Inject
     Logger logger;
 
-    @Incoming("stock")
+    @Incoming("inventory")
     @Blocking
-    public void processStock(MessagingQuote<?> stockText) throws InterruptedException {
+    public void processStock(MessagingQuote<Map<String, Object>> stockText) throws InterruptedException {
         logger.info("received: topic: stock, text:"+stockText);
     }
 }

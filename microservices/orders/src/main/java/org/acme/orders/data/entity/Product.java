@@ -1,59 +1,59 @@
-package org.acme.inventory.data.entity;
+package org.acme.orders.data.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import org.acme.microservices.common.crud.CrudableEntity;
 
 import java.math.BigDecimal;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Entity
+@Table(name = "products", indexes = {
+        @Index(name = "_search", columnList = "name, id, stock, stock_on_hold, stock_outstanding")
+})
 public class Product extends CrudableEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @JsonProperty("id")
     @Column(length = 36, nullable = false)
     private String id;
-    @Column(unique = true)
-    private String code;
+    @JsonProperty("name")
     private String name;
-    @Column(name = "image_url")
-    private String imageUrl;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
-    @JoinColumn(name = "unit_id", referencedColumnName = "id")
-    private Unit unit;
+    @JsonProperty("unit_id")
+    @Column(name = "unit_id", length = 36)
+    private String unitId;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
-    @JoinColumn(name = "category_id", referencedColumnName = "id")
-    private Category category;
+    @JsonProperty("category_id")
+    @Column(name = "category_id")
+    private String categoryId;
 
+    @JsonProperty("price")
     @Column(nullable = false, scale = 2, precision = 14)
     private BigDecimal price = BigDecimal.ZERO;
 
+
+    @JsonProperty("cogs")
     @Column(nullable = false, scale = 2, precision = 14)
     private BigDecimal cogs = BigDecimal.ZERO;
 
+    @JsonProperty("stock")
     @Column(nullable = false)
     private Long stock = 0L;
 
+
+    @JsonProperty("stock_on_hold")
     @Column(name = "stock_on_hold", nullable = false)
     private Long stockOnHold = 0L;
+    @JsonProperty("stock_outstanding")
     @Column(name = "stock_outstanding", nullable = false)
     private Long stockOutstanding = 0L;
 
     public Product() {
     }
 
-    public Product(String id, String code, String name, String imageUrl, BigDecimal price, BigDecimal cogs, Long stock, Long stockOnHold, Long stockOutstanding) {
-        this.id = id;
-        this.code = code;
-        this.name = name;
-        this.imageUrl = imageUrl;
-        this.price = price;
-        this.cogs = cogs;
-        this.stock = stock;
-        this.stockOnHold = stockOnHold;
-        this.stockOutstanding = stockOutstanding;
-    }
-
+    @JsonIgnore
     public String getId() {
         return id;
     }
@@ -62,6 +62,7 @@ public class Product extends CrudableEntity {
         this.id = id;
     }
 
+    @JsonIgnore
     public String getName() {
         return name;
     }
@@ -70,6 +71,7 @@ public class Product extends CrudableEntity {
         this.name = name;
     }
 
+    @JsonIgnore
     public BigDecimal getPrice() {
         return price;
     }
@@ -78,6 +80,7 @@ public class Product extends CrudableEntity {
         this.price = price;
     }
 
+    @JsonIgnore
     public BigDecimal getCogs() {
         return cogs;
     }
@@ -86,6 +89,7 @@ public class Product extends CrudableEntity {
         this.cogs = cogs;
     }
 
+    @JsonIgnore
     public Long getStock() {
         return stock;
     }
@@ -94,6 +98,7 @@ public class Product extends CrudableEntity {
         this.stock = stock;
     }
 
+    @JsonIgnore
     public Long getStockOnHold() {
         return stockOnHold;
     }
@@ -102,6 +107,7 @@ public class Product extends CrudableEntity {
         this.stockOnHold = stockOnHold;
     }
 
+    @JsonIgnore
     public Long getStockOutstanding() {
         return stockOutstanding;
     }
@@ -110,47 +116,31 @@ public class Product extends CrudableEntity {
         this.stockOutstanding = stockOutstanding;
     }
 
-    public String getCode() {
-        return code;
+    @JsonIgnore
+    public String getUnitId() {
+        return unitId;
     }
 
-    public void setCode(String code) {
-        this.code = code;
+    public void setUnitId(String unitId) {
+        this.unitId = unitId;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    @JsonIgnore
+    public String getCategoryId() {
+        return categoryId;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public Unit getUnit() {
-        return unit;
-    }
-
-    public void setUnit(Unit unit) {
-        this.unit = unit;
-    }
-
-    public Category getCategory() {
-        return category;
-    }
-
-    public void setCategory(Category category) {
-        this.category = category;
+    public void setCategoryId(String categoryId) {
+        this.categoryId = categoryId;
     }
 
     @Override
     public String toString() {
         return "Product{" +
                 "id='" + id + '\'' +
-                ", code='" + code + '\'' +
                 ", name='" + name + '\'' +
-                ", imageUrl='" + imageUrl + '\'' +
-                ", unit=" + unit +
-                ", category=" + category +
+                ", unitId=" + unitId +
+                ", categoryId=" + categoryId +
                 ", price=" + price +
                 ", cogs=" + cogs +
                 ", stock=" + stock +

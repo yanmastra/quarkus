@@ -70,7 +70,7 @@ public class KeyValueCacheUtils {
             reader.close();
             return null;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error finding cache:"+file.getAbsolutePath()+", cache:"+cacheName+"/"+key, e);
         }
     }
 

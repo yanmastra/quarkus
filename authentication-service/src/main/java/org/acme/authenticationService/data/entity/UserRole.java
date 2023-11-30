@@ -4,29 +4,20 @@ import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
-import java.util.UUID;
 
 @Entity
 @Table(name = "user_role")
 public class UserRole extends PanacheEntityBase implements Serializable {
     @Id
+    @Column(length = 36, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
     @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     private AuthUser authUser;
     @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
-    @JoinColumns({
-            @JoinColumn(name = "app_code", referencedColumnName = "app_code", nullable = false),
-            @JoinColumn(name = "role_code", referencedColumnName = "code", nullable = false)
-    })
+    @JoinColumn(name = "role_id", referencedColumnName = "id", nullable = false)
     private Role role;
-
-    @PrePersist
-    private void generateUUID() {
-        if (id == null) {
-            id = "USE_" + UUID.randomUUID().toString().toUpperCase();
-        }
-    }
 
     @Override
     public boolean equals(Object obj) {

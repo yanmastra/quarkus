@@ -1,5 +1,6 @@
 package org.acme.microservices.common.crud;
 
+import com.acme.authorization.security.UserPrincipal;
 import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.panache.common.Page;
@@ -59,9 +60,12 @@ public abstract class CrudEndpoint<Entity extends CrudableEntity, Dao> {
             return getRepository().persist(entity)
                     .onItem()
                     .transform(entity1 -> {
+                        Dao dao1 = fromEntity(entity1);
+                        onWriteSuccess(dao1, UserPrincipal.valueOf(context), WriteType.CREATE);
+
                         Map<String, Object> data = new HashMap<>();
                         data.put("success", true);
-                        data.put("data", fromEntity(entity1));
+                        data.put("data", dao1);
                         return Response.ok(data).build();
                     });
         } catch (Exception e) {
@@ -96,9 +100,11 @@ public abstract class CrudEndpoint<Entity extends CrudableEntity, Dao> {
                     })
                     .onItem()
                     .transform(entity1 -> {
+                        Dao dao1 = fromEntity(entity1);
+                        onWriteSuccess(dao1, UserPrincipal.valueOf(context), WriteType.UPDATE);
                         Map<String, Object> data = new HashMap<>();
                         data.put("success", true);
-                        data.put("data", fromEntity(entity1));
+                        data.put("data", dao1);
                         return Response.ok(data).build();
                     });
         } catch (Exception e) {
@@ -119,18 +125,34 @@ public abstract class CrudEndpoint<Entity extends CrudableEntity, Dao> {
             @PathParam("id") String id,
             @Context SecurityContext context
     ) {
-        return getRepository().deleteById(id)
-                .map(result -> {
-                    JsonObject data = Json.createObjectBuilder()
-                            .add("success", result)
-                            .add("data", Json.createObjectBuilder().add("id", id).build())
-                            .build();
-                    if (result) {
-                        return Response.ok(data.toString()).build();
-                    } else {
-                        return Response.status(500).entity(data.toString()).build();
-                    }
-                });
+        return getRepository().findById(id)
+                        .chain(item -> {
+                            if (item != null) {
+                                return getRepository().deleteById(id)
+                                        .map(result -> {
+                                            JsonObject data = Json.createObjectBuilder()
+                                                    .add("success", result)
+                                                    .add("data", Json.createObjectBuilder().add("id", id).build())
+                                                    .build();
+                                            if (result) {
+                                                onWriteSuccess(fromEntity(item), UserPrincipal.valueOf(context), WriteType.DELETE);
+                                                return Response.ok(data.toString()).build();
+                                            } else {
+                                                return Response.status(500).entity(data.toString()).build();
+                                            }
+                                        });
+                            } else {
+                                JsonObject data = Json.createObjectBuilder()
+                                        .add("success", false)
+                                        .add("message", "Product with id:"+id+" not found!")
+                                        .add("data", Json.createObjectBuilder().add("id", id).build())
+                                        .build();
+                                return Uni.createFrom().item(Response.status(404).entity(data.toString()).build());
+                            }
+                        });
+    }
+
+    protected void onWriteSuccess(Dao dao, UserPrincipal principal, WriteType type) {
     }
 
 }

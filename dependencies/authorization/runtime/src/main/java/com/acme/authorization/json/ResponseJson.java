@@ -1,11 +1,16 @@
 package com.acme.authorization.json;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ResponseJson<E> {
+    @JsonProperty("success")
     private boolean success;
+    @JsonProperty("message")
     private String message;
+    @JsonProperty("data")
     private E data;
 
     public ResponseJson() {
@@ -27,6 +32,7 @@ public class ResponseJson<E> {
         this.success = true;
     }
 
+    @JsonIgnore
     public boolean isSuccess() {
         return success;
     }
@@ -35,6 +41,7 @@ public class ResponseJson<E> {
         this.success = success;
     }
 
+    @JsonIgnore
     public String getMessage() {
         return message;
     }
@@ -43,6 +50,7 @@ public class ResponseJson<E> {
         this.message = message;
     }
 
+    @JsonIgnore
     public E getData() {
         return data;
     }
@@ -51,12 +59,13 @@ public class ResponseJson<E> {
         this.data = data;
     }
 
+    @JsonIgnore
     @Override
     public String toString() {
         return "ResponseJson{" +
                 "success=" + success +
                 ", message='" + message + '\'' +
-                ", data=" + data +
+                ", data=" + (data == null ? null : data.getClass().getName()) +
                 '}';
     }
 }

@@ -28,7 +28,7 @@ public class SelfAuthorizer implements Authorizer {
         } catch (HttpException e) {
             throw e;
         } catch (Exception ex) {
-            throw new HttpException(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), ex.getMessage());
+            throw new HttpException(HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), ex.getMessage(), ex);
         }
     }
 

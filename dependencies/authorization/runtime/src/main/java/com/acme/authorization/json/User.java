@@ -1,5 +1,6 @@
 package com.acme.authorization.json;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -39,6 +40,7 @@ public abstract class User implements Serializable {
         this.name = name;
     }
 
+    @JsonIgnore
     public String getId() {
         return id;
     }
@@ -47,6 +49,7 @@ public abstract class User implements Serializable {
         this.id = id;
     }
 
+    @JsonIgnore
     public String getUsername() {
         return username;
     }
@@ -55,6 +58,7 @@ public abstract class User implements Serializable {
         this.username = username;
     }
 
+    @JsonIgnore
     public String getEmail() {
         return email;
     }
@@ -63,6 +67,7 @@ public abstract class User implements Serializable {
         this.email = email;
     }
 
+    @JsonIgnore
     public String getName() {
         return name;
     }
@@ -71,6 +76,7 @@ public abstract class User implements Serializable {
         this.name = name;
     }
 
+    @JsonIgnore
     public Date getCreatedAt() {
         return createdAt;
     }
@@ -79,6 +85,7 @@ public abstract class User implements Serializable {
         this.createdAt = createdAt;
     }
 
+    @JsonIgnore
     public String getCreatedBy() {
         return createdBy;
     }
@@ -87,6 +94,7 @@ public abstract class User implements Serializable {
         this.createdBy = createdBy;
     }
 
+    @JsonIgnore
     public Date getUpdatedAt() {
         return updatedAt;
     }
@@ -95,6 +103,7 @@ public abstract class User implements Serializable {
         this.updatedAt = updatedAt;
     }
 
+    @JsonIgnore
     public String getUpdatedBy() {
         return updatedBy;
     }
@@ -103,6 +112,7 @@ public abstract class User implements Serializable {
         this.updatedBy = updatedBy;
     }
 
+    @JsonIgnore
     public Date getDeletedAt() {
         return deletedAt;
     }
@@ -111,6 +121,7 @@ public abstract class User implements Serializable {
         this.deletedAt = deletedAt;
     }
 
+    @JsonIgnore
     public String getDeletedBy() {
         return deletedBy;
     }
@@ -119,6 +130,7 @@ public abstract class User implements Serializable {
         this.deletedBy = deletedBy;
     }
 
+    @JsonIgnore
     @Override
     public String toString() {
         return "User{" +

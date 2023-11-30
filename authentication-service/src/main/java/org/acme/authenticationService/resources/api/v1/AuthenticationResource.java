@@ -45,7 +45,7 @@ public class AuthenticationResource {
     @GET
     @Path("authorize")
     public Uni<ResponseJson<UserPrincipal>> authorize(@HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
-        logger.info("request received:"+auth.substring(1, 10));
+        logger.info("request received:"+auth.substring(0, 10));
         return authenticationService.authorizeToken(auth).map(r -> new ResponseJson<>(true, null, r));
     }
 

@@ -1,6 +1,8 @@
 package org.acme.authenticationService.seeds;
 
+import com.acme.authorization.utils.JsonUtils;
 import com.acme.authorization.utils.PasswordGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import io.quarkus.runtime.StartupEvent;
 import io.smallrye.mutiny.Uni;
@@ -28,8 +30,13 @@ public class SeedServices {
     @ConfigProperty(name = "auth-service.clear-seed", defaultValue = "false")
     boolean clearSeed;
 
+    @Inject
+    ObjectMapper objectMapper;
+
     void onStart(@Observes StartupEvent event) throws InterruptedException {
         logger.info("##############          SEEDING         #################");
+        JsonUtils.setObjectMapper(objectMapper);
+
         sf.withTransaction(session -> {
                     Application application = createSystemApp();
                     List<PanacheEntityBase> entities = new ArrayList<>();
@@ -45,12 +52,27 @@ public class SeedServices {
                             entities.add(application);
                         }
                     });
+                    result = result.call(r -> AuthUser.find("username=?1", authUser.getUsername()).firstResult()
+                            .onItem().invoke(rx -> {
+                                if (rx == null) {
+                                    authUser.setCreatedBy("SYSTEM");
+                                    String pass = PasswordGenerator.generatePassword(32, true);
+                                    authUser.setPasswordTextPlain(pass);
+                                    logger.info("ROOT PASSWORD:"+pass);
+                                    authUser.setVerified(true);
+                                    entities.add(authUser);
+                                } else {
+                                    authUser.setId(((AuthUser) rx).getId());
+                                }
+                            }));
+
                     result = result.chain(r -> Role.find("code=?1 and appCode=?2", "SYSTEM_ROOT", "SYSTEM")
                             .firstResult()
                             .onItem().invoke(resultX -> {
                                 if (resultX == null) {
                                     role.setCreatedBy("SYSTEM");
                                     entities.add(role);
+                                    entities.add(new UserRole(authUser, role));
                                 }else if (resultX instanceof Role role1){
                                     role.setId(role1.getId());
                                 } else {
@@ -58,6 +80,7 @@ public class SeedServices {
                                     role.setAppCode("SYSTEM");
                                 }
                             }));
+
 
                     for (Permission p: permissions) {
                         result = result.onItem().call(r -> Permission.find("appCode=?1 and code=?2", p.getAppCode(), p.getCode()).firstResult()
@@ -72,20 +95,6 @@ public class SeedServices {
                                 }));
                     }
 
-                    result = result.call(r -> AuthUser.find("username=?1", authUser.getUsername()).firstResult()
-                            .onItem().invoke(rx -> {
-                                if (rx == null) {
-                                    authUser.setCreatedBy("SYSTEM");
-                                    String pass = PasswordGenerator.generatePassword(32, true);
-                                    authUser.setPasswordTextPlain(pass);
-                                    logger.info("ROOT PASSWORD:"+pass);
-                                    authUser.setVerified(true);
-                                    entities.add(authUser);
-                                    entities.add(new UserRole(authUser, role));
-                                } else {
-                                    authUser.setId(((AuthUser) rx).getId());
-                                }
-                            }));
                     return result.call(r -> session.persistAll(entities.toArray()));
                 })
                 .subscribe().with(r -> logger.info("SEEDING COMPLETE"));

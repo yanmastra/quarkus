@@ -1,7 +1,6 @@
 package org.acme.authenticationService.data.entity;
 
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
-import io.quarkus.runtime.util.StringUtil;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.*;
@@ -9,7 +8,6 @@ import org.hibernate.annotations.*;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.UUID;
 
 @Entity
 @Table(name = "permission", indexes = {
@@ -29,7 +27,8 @@ import java.util.UUID;
 )
 public class Permission extends PanacheEntityBase implements Serializable {
     @Id
-    @Column(length = 36)
+    @Column(length = 36, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column(name = "code", length = 36, nullable = false)
@@ -38,7 +37,7 @@ public class Permission extends PanacheEntityBase implements Serializable {
     @Column(length = 72, nullable = false)
     private String name;
 
-    @Column(name = "app_code", nullable = false)
+    @Column(name = "app_code", length = 36, nullable = false)
     private String appCode;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -82,13 +81,6 @@ public class Permission extends PanacheEntityBase implements Serializable {
         this.id = id;
         this.deletedAt = deletedAt;
         this.deletedBy = deletedBy;
-    }
-
-    @PrePersist
-    void onInsert() {
-        if (StringUtil.isNullOrEmpty(id)) {
-            id = UUID.randomUUID().toString();
-        }
     }
 
     public String getId() {

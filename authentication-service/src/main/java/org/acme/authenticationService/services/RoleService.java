@@ -10,7 +10,6 @@ import org.acme.authenticationService.dao.Permission;
 import org.acme.authenticationService.dao.RoleAddPermissionRequest;
 import org.acme.authenticationService.dao.RoleOnly;
 import org.acme.authenticationService.dao.RoleWithPermission;
-import org.acme.authenticationService.data.entity.RoleId;
 import org.acme.authenticationService.data.entity.RolePermission;
 import org.acme.authenticationService.data.repository.RolePermissionRepository;
 import org.acme.authenticationService.data.repository.RoleRepository;
@@ -51,7 +50,7 @@ public class RoleService {
 
     @WithTransaction
     public Uni<RoleOnly> update(String appCode, String code, RoleOnly data) {
-        return repository.update("updatedAt=CURRENT_TIMESTAMP(), name=?1, description=?2 where id=?3", data.getName(), data.getDescription(), new RoleId(appCode, code))
+        return repository.update("updatedAt=CURRENT_TIMESTAMP(), name=?1, description=?2 where code=?3 and appCode", data.getName(), data.getDescription(),  code, appCode)
                 .onItem().transformToUni(integer -> {
                     logger.info("update result: " + integer);
                     if (integer == 1) return repository.findById(appCode, code);
