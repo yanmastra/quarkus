@@ -60,7 +60,7 @@ public class TokenUtils {
         return new UserPrincipal(data, jsonWebToken.getGroups().stream().toList(), appCode, accessToken);
     }
 
-    static AuthenticationResponse createAccessToken(String refreshToken, JWTParser parser, ObjectMapper objectMapper) throws ParseException, JsonProcessingException {
+    static AuthenticationResponse<org.acme.authenticationService.dao.UserOnly> createAccessToken(String refreshToken, JWTParser parser, ObjectMapper objectMapper) throws ParseException, JsonProcessingException {
         if (StringUtil.isNullOrEmpty(refreshToken)) throw new HttpException(HttpResponseStatus.FORBIDDEN.code(), "Token is null");
 
         String tokenId = refreshToken.substring(refreshToken.lastIndexOf('.')+1);
@@ -83,11 +83,11 @@ public class TokenUtils {
 
         String accessToken = createAccessToken(appCode, subject, username, tokenId, DateTimeUtils.getExpiredToken(), allowedPermissions, appSecretKey);
         String newRefreshToken = createRefreshToken(appCode, subject, username, tokenId, DateTimeUtils.getExpiredRefreshToken(), allowedPermissions, newRefreshKey);
-        UserOnly userOnly = objectMapper.readValue(subject, UserOnly.class);
+        org.acme.authenticationService.dao.UserOnly userOnly = objectMapper.readValue(subject, org.acme.authenticationService.dao.UserOnly.class);
 
         saveSession(tokenId, appCode, appSecretKey, newRefreshKey);
 
-        return new AuthenticationResponse(accessToken, newRefreshToken, userOnly);
+        return new AuthenticationResponse<>(accessToken, newRefreshToken, userOnly);
     }
 
     private static String findAppSecret(String appCode) {

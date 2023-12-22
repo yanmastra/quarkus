@@ -34,7 +34,7 @@ public class WebErrorMapper implements HtmlErrorMapper {
 
     @Override
     public Response getResponse(Throwable e) {
-        logger.warn("Handling error:"+e.getMessage());
+        logger.warn("Handling error:"+e.getMessage(), e);
         int status = 500;
         String messages = e.getMessage();
         if (e instanceof HttpException httpException) {

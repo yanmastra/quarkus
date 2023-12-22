@@ -4,6 +4,7 @@ import com.acme.authorization.security.UserPrincipal;
 import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.panache.common.Page;
+import io.quarkus.panache.common.Sort;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.inject.Inject;
@@ -38,8 +39,10 @@ public abstract class CrudEndpoint<Entity extends CrudableEntity, Dao> {
         if (page == null || page <= 0) page = 1;
         if (size == null || size < 5) size = 5;
 
-        return getRepository().findAll().page(Page.of(page -1, size))
-                .list().map(list -> list.stream().map(this::fromEntity).toList());
+        return getRepository().findAll(Sort.descending("createdAt").and("createdAt", Sort.NullPrecedence.NULLS_LAST))
+                .page(Page.of(page -1, size))
+                .list()
+                .map(list -> list.stream().map(this::fromEntity).toList());
     }
 
     @GET

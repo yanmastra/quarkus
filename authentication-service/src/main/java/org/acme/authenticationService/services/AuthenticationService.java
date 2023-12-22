@@ -1,7 +1,7 @@
 package org.acme.authenticationService.services;
 
 import com.acme.authorization.json.AuthenticationResponse;
-import com.acme.authorization.json.SignInCredential;
+import com.acme.authorization.json.Credential;
 import com.acme.authorization.security.UserPrincipal;
 import com.acme.authorization.utils.DateTimeUtils;
 import com.acme.authorization.utils.PasswordGenerator;
@@ -47,21 +47,21 @@ public class AuthenticationService {
     static final String APPLICATION = "APPLICATION";
 
     @WithTransaction
-    public Uni<AuthenticationResponse> authenticate(SignInCredential credential) {
-        return userRepository.find("(username=?1 or email = ?1) and verified", credential.username)
+    public Uni<AuthenticationResponse<UserOnly>> authenticate(Credential credential) {
+        return userRepository.find("(username=?1 or email = ?1) and verified", credential.getUsername())
                 .filter("isActiveUser", Parameters.with("isActive", true))
                 .firstResult().chain(user -> {
                     if (user == null) {
                         throw new HttpException(HttpResponseStatus.NOT_FOUND.code(), "Invalid credential");
                     }
 
-                    return appRepository.findById(credential.appCode).chain(app -> {
+                    return appRepository.findById(credential.getAppCode()).chain(app -> {
                         if (app == null) throw new HttpException(HttpResponseStatus.FORBIDDEN.code(), "Application not found");
 
-                        if (user.validatePassword(credential.password)) {
-                            return userRoleRepository.find("authUser=?1 and role.appCode=?2", user, credential.appCode).firstResult().chain(userRole -> {
+                        if (user.validatePassword(credential.getPassword())) {
+                            return userRoleRepository.find("authUser.id=?1 and role.appCode=?2", user.getId(), credential.getAppCode()).firstResult().chain(userRole -> {
                                 if (userRole == null) {
-                                    logger.error("Role with user:"+user.getId()+", appCode:"+credential.appCode+" not found");
+                                    logger.error("Role with user:"+user.getId()+", appCode:"+credential.getAppCode()+" not found");
                                     throw new HttpException(HttpResponseStatus.FORBIDDEN.code(), "Access to the application is denied!");
                                 }
 
@@ -82,12 +82,12 @@ public class AuthenticationService {
                                 try {
                                     String subject = objectMapper.writeValueAsString(userData);
 
-                                    Date accessExpired = credential.expToken == null ? DateTimeUtils.getExpiredToken() : credential.expToken;
+                                    Date accessExpired = credential.getExpToken() == null ? DateTimeUtils.getExpiredToken() : credential.getExpToken();
                                     Date refreshExpired = DateTimeUtils.getExpiredRefreshToken();
                                     String accessToken = TokenUtils.createAccessToken(app.getCode(), subject, userData.getUsername(), tokenId, accessExpired, roleGroup, secretKey);
                                     String refreshToken = TokenUtils.createRefreshToken(app.getCode(), subject, userData.getUsername(), tokenId, refreshExpired, roleGroup, refreshKey);
 
-                                    AuthenticationResponse authResponse = new AuthenticationResponse(accessToken, refreshToken, userData);
+                                    AuthenticationResponse<UserOnly> authResponse = new AuthenticationResponse<>(accessToken, refreshToken, userData);
 
                                     TokenUtils.saveSession(tokenId, app.getCode(), secretKey, refreshKey);
                                     return Uni.createFrom().item(authResponse);
@@ -120,7 +120,7 @@ public class AuthenticationService {
     }
 
 
-    public Uni<AuthenticationResponse> refreshToken(String auth) {
+    public Uni<AuthenticationResponse<UserOnly>> refreshToken(String auth) {
         return Uni.createFrom().item(auth).chain(token -> {
             try {
                 return Uni.createFrom().item(TokenUtils.createAccessToken(token, parser, objectMapper));

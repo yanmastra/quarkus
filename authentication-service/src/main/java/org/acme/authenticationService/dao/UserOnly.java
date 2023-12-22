@@ -1,5 +1,6 @@
 package org.acme.authenticationService.dao;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.acme.authenticationService.data.entity.AuthUser;
 import org.acme.authenticationService.data.entity.UserRole;
@@ -15,6 +16,7 @@ public class UserOnly extends User {
         super(id, username, email, name);
     }
 
+    @JsonIgnore
     @Override
     public AuthUser toDto() {
         return new AuthUser(getId(), getUsername(), getEmail(), getName());
@@ -41,6 +43,7 @@ public class UserOnly extends User {
     @JsonProperty("roles_ids")
     private Map<String, List<String>> rolesIds = new HashMap<>();
 
+    @JsonIgnore
     public Map<String, List<String>> getRolesIds() {
         return rolesIds;
     }

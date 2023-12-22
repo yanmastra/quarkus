@@ -3,20 +3,19 @@ package com.acme.authorization.json;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.jboss.resteasy.reactive.RestForm;
 
 import java.util.Date;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class SignInCredential {
-    @RestForm("username")
-    public String username;
-    @RestForm("password")
-    public String password;
+public class SignInCredential implements Credential {
+    @JsonProperty("username")
+    private String username;
+    @JsonProperty("password")
+    private String password;
     @JsonProperty("app_code")
-    public String appCode;
+    private String appCode;
     @JsonIgnore
-    public Date expToken;
+    private Date expToken;
 
     public SignInCredential() {
     }
@@ -31,8 +30,48 @@ public class SignInCredential {
     public String toString() {
         return "SignInCredential{" +
                 "username='" + username + '\'' +
-                ", password='" + password + '\'' +
+                ", password=''********'" +
                 ", appCode='" + appCode + '\'' +
                 '}';
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
+    }
+
+    @Override
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    @Override
+    public String getAppCode() {
+        return appCode;
+    }
+
+    @Override
+    public void setAppCode(String appCode) {
+        this.appCode = appCode;
+    }
+
+    @Override
+    public Date getExpToken() {
+        return expToken;
+    }
+
+    @Override
+    public void setExpToken(Date expToken) {
+        this.expToken = expToken;
     }
 }

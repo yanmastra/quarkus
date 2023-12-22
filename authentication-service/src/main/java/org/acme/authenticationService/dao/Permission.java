@@ -19,6 +19,8 @@ public class Permission extends com.acme.authorization.json.Permission implement
         dao.setAppCode(permission.getAppCode());
         dao.setDeletedAt(permission.getDeletedAt());
         dao.setDeletedBy(permission.getDeletedBy());
+        dao.setCreatedAt(permission.getCreatedAt());
+        dao.setCreatedBy(permission.getCreatedBy());
         return dao;
     }
 
@@ -28,4 +30,5 @@ public class Permission extends com.acme.authorization.json.Permission implement
     public Permission(String code, String name) {
         super(code, name);
     }
+
 }

@@ -21,6 +21,10 @@ public class Permission implements Serializable {
     private Date deletedAt;
     @JsonProperty("deleted_by")
     private String deletedBy;
+    @JsonProperty("created_at")
+    private Date createdAt;
+    @JsonProperty("created_by")
+    private String createdBy;
 
     @Override
     public boolean equals(Object obj) {
@@ -86,5 +90,35 @@ public class Permission implements Serializable {
 
     public void setDeletedBy(String deletedBy) {
         this.deletedBy = deletedBy;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    @Override
+    public String toString() {
+        return "Permission{" +
+                "id='" + id + '\'' +
+                ", code='" + code + '\'' +
+                ", appCode='" + appCode + '\'' +
+                ", name='" + name + '\'' +
+                ", deletedAt=" + deletedAt +
+                ", deletedBy='" + deletedBy + '\'' +
+                ", createdAt=" + createdAt +
+                ", createdBy='" + createdBy + '\'' +
+                '}';
     }
 }

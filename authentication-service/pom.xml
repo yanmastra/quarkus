@@ -86,7 +86,7 @@
     <dependency>
         <groupId>com.acme</groupId>
         <artifactId>authorization</artifactId>
-        <version>0.0.1</version>
+        <version>0.0.2</version>
     </dependency>
 
     <dependency>
@@ -99,6 +99,10 @@
       <artifactId>quarkus-container-image-docker</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-mailer</artifactId>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.acme</groupId>
         <artifactId>authorization-parent</artifactId>
-        <version>0.0.1</version>
+        <version>0.0.2</version>
     </parent>
     <artifactId>authorization-integration-tests</artifactId>
     <name>Authorization - Integration Tests</name>

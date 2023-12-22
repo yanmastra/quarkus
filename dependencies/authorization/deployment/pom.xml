@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.acme</groupId>
         <artifactId>authorization-parent</artifactId>
-        <version>0.0.1</version>
+        <version>0.0.2</version>
     </parent>
     <artifactId>authorization-deployment</artifactId>
     <name>Authorization - Deployment</name>
@@ -37,6 +37,11 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-client-reactive-jackson-deployment</artifactId>
         </dependency>-->
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-elytron-security-deployment</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

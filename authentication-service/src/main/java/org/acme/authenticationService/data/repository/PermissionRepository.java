@@ -2,12 +2,15 @@ package org.acme.authenticationService.data.repository;
 
 import io.quarkus.hibernate.reactive.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Parameters;
+import io.quarkus.panache.common.Sort;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.acme.authenticationService.data.entity.Permission;
 import org.acme.authenticationService.data.entity.RolePermission;
 import org.jboss.logging.Logger;
+
+import java.util.List;
 
 @ApplicationScoped
 public class PermissionRepository implements PanacheRepositoryBase<Permission, String> {
@@ -50,6 +53,18 @@ public class PermissionRepository implements PanacheRepositoryBase<Permission, S
     @Override
     public Uni<Permission> findById(String s) {
         return Permission.find("id=?1", s)
+                .filter("deletedPermissionFilter", Parameters.with("isDeleted", false))
+                .firstResult();
+    }
+
+    public Uni<List<Permission>> findByAppCode(String appCode) {
+        return Permission.find("appCode=?1", Sort.descending("createdAt"), appCode)
+                .filter("deletedPermissionFilter", Parameters.with("isDeleted", false))
+                .list();
+    }
+
+    public Uni<Permission> findByAppAndCode(String appCode, String code) {
+        return Permission.find("appCode=?1 and code=?2", appCode, code)
                 .filter("deletedPermissionFilter", Parameters.with("isDeleted", false))
                 .firstResult();
     }

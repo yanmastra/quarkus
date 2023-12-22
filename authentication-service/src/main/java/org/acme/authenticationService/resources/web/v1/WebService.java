@@ -1,34 +1,36 @@
 package org.acme.authenticationService.resources.web.v1;
 
+import com.acme.authorization.json.User;
 import com.acme.authorization.security.UserPrincipal;
+import com.acme.authorization.utils.JsonUtils;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.hibernate.reactive.panache.PanacheQuery;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.panache.common.Page;
 import io.quarkus.panache.common.Parameters;
+import io.quarkus.panache.common.Sort;
 import io.quarkus.runtime.util.StringUtil;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.NotFoundException;
 import org.acme.authenticationService.dao.ApplicationJson;
+import org.acme.authenticationService.dao.Permission;
 import org.acme.authenticationService.dao.RoleOnly;
-import org.acme.authenticationService.dao.web.ApplicationDetailModel;
-import org.acme.authenticationService.dao.web.ApplicationModel;
-import org.acme.authenticationService.dao.web.Home;
-import org.acme.authenticationService.data.entity.Application;
-import org.acme.authenticationService.data.entity.Role;
-import org.acme.authenticationService.data.repository.ApplicationRepository;
-import org.acme.authenticationService.data.repository.RoleRepository;
-import org.acme.authenticationService.data.repository.UserRepository;
-import org.acme.authenticationService.data.repository.UserRoleRepository;
+import org.acme.authenticationService.dao.UserOnly;
+import org.acme.authenticationService.dao.web.*;
+import org.acme.authenticationService.data.entity.*;
+import org.acme.authenticationService.data.repository.*;
 import org.acme.authenticationService.resources.web.WebUtils;
+import org.acme.authenticationService.services.MailService;
+import org.acme.authenticationService.services.UserService;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class WebService {
@@ -47,6 +49,16 @@ public class WebService {
     @Inject
     Logger logger;
 
+    @Inject
+    MailService mailService;
+    @Inject
+    PermissionRepository permissionRepo;
+    @Inject
+    RolePermissionRepository rolePermissionRepo;
+    @Inject
+    UserService userService;
+
+
     @WithTransaction
     public Uni<Home> getHomePageData(UserPrincipal principal) {
         return Uni.createFrom().item(principal)
@@ -58,6 +70,12 @@ public class WebService {
                             return home;
                         }).chain(home -> userRepo.count().map(uCount -> {
                             home.userCount = uCount;
+                            return home;
+                        })).chain(home -> roleRepo.count().map(count -> {
+                            home.roleCount = count;
+                            return home;
+                        })).chain(home -> permissionRepo.count().map(count -> {
+                            home.permissionCount = count;
                             return home;
                         }));
                     } else {
@@ -82,26 +100,30 @@ public class WebService {
                 });
     }
 
-    @WithTransaction
-    public Uni<ApplicationModel> getApplicationModel(int page, int size, String search, UserPrincipal principal) {
+    private PanacheQuery<Application> getApplicationQuery(UserPrincipal principal, String search) {
         PanacheQuery<Application> applicationPanacheQuery;
 
         if (principal.getAppCode().equals("SYSTEM")) {
             if (!StringUtil.isNullOrEmpty(search)) {
-                applicationPanacheQuery = appRepo.find("where (name like ?1 or parent.name like ?1)", "%"+search.toLowerCase()+"%");
+                applicationPanacheQuery = appRepo.find("where (name like ?1 or parent.name like ?1)", Sort.descending("createdAt"), "%"+search.toLowerCase()+"%");
             } else
-                applicationPanacheQuery = appRepo.findAll();
+                applicationPanacheQuery = appRepo.findAll(Sort.descending("createdAt"));
         } else {
             String appCode = principal.getAppCode();
 
             if (!StringUtil.isNullOrEmpty(search)) {
-                applicationPanacheQuery = appRepo.find("where (code=?1 or parent.code=?1) and (name like ?2 or parent.name like ?2)", appCode, "%"+search.toLowerCase()+"%");
+                applicationPanacheQuery = appRepo.find("where (code=?1 or parent.code=?1) and (name like ?2 or parent.name like ?2)", Sort.descending("createdAt"), appCode, "%"+search.toLowerCase()+"%");
             } else
-                applicationPanacheQuery = appRepo.find("where (code=?1 or parent.code=?1)", appCode);
+                applicationPanacheQuery = appRepo.find("where (code=?1 or parent.code=?1)", Sort.descending("createdAt"), appCode);
         }
         applicationPanacheQuery = applicationPanacheQuery.filter("deletedAppFilter", Parameters.with("isDeleted", false));
+        return applicationPanacheQuery;
+    }
 
-        final PanacheQuery<Application> query = applicationPanacheQuery;
+    @WithTransaction
+    public Uni<ApplicationModel> getApplicationModel(int page, int size, String search, UserPrincipal principal) {
+
+        final PanacheQuery<Application> query = getApplicationQuery(principal, search);
         return query.page(Page.of(page - 1, size))
                 .list().map(result -> result.stream().map(ApplicationJson::fromDto).toList())
                 .chain(result -> {
@@ -202,6 +224,318 @@ public class WebService {
                                 .transform(result -> true);
                     }
                     throw new RuntimeException("Application with code: "+appCode+" not found");
+                });
+    }
+
+    @WithTransaction
+    public Uni<UserPageModel> getUsersModel(int page, int size, String search, UserPrincipal principal) {
+        PanacheQuery<AuthUser> usersPanacheQuery;
+        Uni<UserPageModel> resultUni;
+
+        if (principal.getAppCode().equals("SYSTEM")) {
+
+            if (!StringUtil.isNullOrEmpty(search)) {
+                usersPanacheQuery = userRepo.find("where (name like ?1 or username like ?1 or email like ?1)", Sort.ascending("name"), "%"+search.toLowerCase()+"%");
+            } else
+                usersPanacheQuery = userRepo.findAll(Sort.ascending("name"));
+            usersPanacheQuery = usersPanacheQuery.filter("deletedAppFilter", Parameters.with("isDeleted", false));
+
+            final PanacheQuery<AuthUser> finalUsersPanacheQuery = usersPanacheQuery;
+
+            resultUni = finalUsersPanacheQuery.count().map(count -> {
+                UserPageModel model = new UserPageModel();
+                model.totalData = count.intValue();
+                return model;
+            }).chain(xModel -> finalUsersPanacheQuery.page(Page.of(page -1, size)).list().map(authUsers -> {
+                List<UserOnly> userOnlies = new ArrayList<>();
+                authUsers.forEach(item -> userOnlies.add(UserOnly.fromDto(item)));
+                xModel.appName = principal.getAppCode();
+                xModel.user = principal.getUser();
+                xModel.data = userOnlies;
+                xModel.page = page;
+                xModel.size = size;
+
+                xModel.search = search;
+                return xModel;
+            })).chain(data -> {
+                List<String> userIds = data.data.stream().map(User::getId).toList();
+                return userRoleRepo.find("where authUser.id in :ids", Sort.ascending("authUser.name"), Map.of("ids", userIds))
+                        .list()
+                        .map(userRoles -> {
+                            userRoles.forEach(role -> {
+                                List<RoleOnly> roleOnliest = data.roles.computeIfAbsent(role.getUser().getId(), kx -> new ArrayList<>());
+                                roleOnliest.add(RoleOnly.fromDTO(role.getRole()));
+                            });
+                            return data;
+                        })
+                        .onFailure().invoke(throwable -> {
+                            logger.error(throwable.getMessage(), throwable);
+                        });
+            });
+        } else {
+            String appCode = principal.getAppCode();
+            resultUni = roleRepo.findByApp(appCode).map(listRole -> listRole.stream().map(Role::getId).toList())
+                    .chain(listRoleIds -> {
+                        PanacheQuery<UserRole> userRolePanacheQuery;
+                        if (StringUtils.isNotBlank(search))
+                            userRolePanacheQuery = userRoleRepo.find(
+                                    "where role.id in (:ids) and (authUser.name like :search or authUser.username like :search or authUser.email like :search) and authUser.deletedAt is null",
+                                    Sort.ascending("authUser.name"),
+                                    Map.of(
+                                            "ids", listRoleIds,
+                                            "search", search
+                                    )
+                            );
+                        else
+                            userRolePanacheQuery = userRoleRepo.find(
+                                    "where role.id in (:ids) and authUser.deletedAt is null",
+                                    Sort.ascending("authUser.name"),
+                                    Parameters.with("ids", listRoleIds)
+                            );
+
+                        UserPageModel model = new UserPageModel();
+
+                        return userRolePanacheQuery.count().map(count -> {
+                            model.totalData = count.intValue();
+                            return model;
+                        }).chain(xModel -> userRolePanacheQuery.page(Page.of(page -1, size)).list()
+                                .map(userList -> {
+                                    List<UserOnly> userOnliest = new ArrayList<>();
+                                    userList.forEach(item -> {
+                                        userOnliest.add(UserOnly.fromDto(item.getUser()));
+                                        List<RoleOnly> roleOnliest = xModel.roles.computeIfAbsent(item.getUser().getId(), k -> new ArrayList<>());
+                                        roleOnliest.add(RoleOnly.fromDTO(item.getRole()));
+                                    });
+                                    xModel.appName = principal.getAppCode();
+                                    xModel.user = principal.getUser();
+                                    xModel.data = userOnliest;
+                                    xModel.page = page;
+                                    xModel.size = size;
+                                    xModel.search = search;
+                                    return xModel;
+                                }));
+                    });
+        }
+        return resultUni.map(data -> {
+            data.roles.forEach((k, v) -> {
+                Map<String, List<String>> names = new HashMap<>();
+                v.forEach(rol -> {
+                    List<String> name = names.computeIfAbsent(rol.getAppCode(), kx -> new ArrayList<>());
+                    name.add(rol.getName());
+                });
+                data.roleNames.put(k, JsonUtils.toJson(names));
+            });
+            return data;
+        });
+    }
+
+    @WithTransaction
+    public Uni<Boolean> createUser(UserRestForm user, UserPrincipal userPrincipal) {
+        AuthUser authUser = new AuthUser(null, user.username, user.email, user.name);
+        authUser.setPhone(userPrincipal.getUser().getUsername());
+        return userService.createNewUser(authUser, user.appCode, user.roleCode, userPrincipal)
+                .map(rx -> true);
+    }
+
+    @WithTransaction
+    public Uni<RolesPageModel> getRoles(Integer page, int size, String search, UserPrincipal principal) {
+        PanacheQuery<Role> applicationPanacheQuery;
+
+        if (principal.getAppCode().equals("SYSTEM")) {
+            if (!StringUtil.isNullOrEmpty(search)) {
+                applicationPanacheQuery = roleRepo.find("where (name like ?1)", "%"+search.toLowerCase()+"%");
+            } else
+                applicationPanacheQuery = roleRepo.findAll();
+        } else {
+            String appCode = principal.getAppCode();
+
+            if (!StringUtil.isNullOrEmpty(search)) {
+                applicationPanacheQuery = roleRepo.find("where (appCode=?1) and (name like ?2)", appCode, "%"+search.toLowerCase()+"%");
+            } else
+                applicationPanacheQuery = roleRepo.find("where (appCode=?1)", appCode);
+        }
+        applicationPanacheQuery = applicationPanacheQuery.filter("deletedRoleFilter", Parameters.with("isDeleted", false));
+
+        final PanacheQuery<Role> query = applicationPanacheQuery;
+        return query.page(Page.of(page - 1, size))
+                .list().map(result -> result.stream().map(RoleOnly::fromDTO).toList())
+                .chain(result -> query.count().map(count -> {
+                    RolesPageModel model = WebUtils.createModel(new RolesPageModel(), appName);
+                    model.user = principal.getUser();
+                    model.data = result;
+                    model.page = page;
+                    model.size = size;
+                    model.search = search;
+                    model.totalData = count.intValue();
+                    return model;
+                }));
+    }
+
+    @WithTransaction
+    public Uni<RoleFormModel> createRoleForm(RoleFormModel baseModel, UserPrincipal principal) {
+        final PanacheQuery<Application> applicationPanacheQuery = getApplicationQuery(principal, "");;
+        return applicationPanacheQuery.list()
+                .map(listApp -> listApp.stream().map(
+                        app -> {
+                            ApplicationJson jsonApp = new ApplicationJson();
+                            jsonApp.setCode(app.getCode());
+                            jsonApp.setName(app.getName());
+                            return jsonApp;
+                        }
+                ).toList())
+                .map(result -> {
+                    baseModel.apps = result;
+                    return baseModel;
+                });
+    }
+
+    @WithTransaction
+    public Uni<RoleOnly> createRole(RoleRestForm role, UserPrincipal principal) {
+        if (StringUtils.isBlank(role.appCode)) throw new IllegalArgumentException("Application code can't be empty!");
+        if (StringUtils.isBlank(role.code)) throw new IllegalArgumentException("Role code can't be empty!");
+        if (StringUtils.isBlank(role.name)) throw new IllegalArgumentException("Role name can't be empty!");
+
+        Role eRole = new Role(null, role.appCode, role.code, role.name, role.description);
+        eRole.setCreatedBy(principal.getUser().getUsername());
+
+        return roleRepo.findById(role.appCode, role.code)
+                .chain(result -> {
+                    if (result != null) {
+                        String msg = "Role with code:"+role.code+" in application:"+role.appCode+" already exists!";
+                        throw new HttpException(HttpResponseStatus.CONFLICT.code(), msg, new Exception(msg));
+                    }
+                    return Uni.createFrom().nullItem();
+                })
+                .chain(r -> roleRepo.persist(eRole))
+                .map(RoleOnly::fromDTO);
+    }
+
+    @WithTransaction
+    public Uni<RoleFormAddPermissionModel> createRoleFormAddPermission(String roleId, RoleFormAddPermissionModel model, UserPrincipal principal) {
+        if (StringUtils.isBlank(roleId)) throw new IllegalArgumentException("{role_id} can't be empty in path \"web/v1/roles/{role_id}/add_permission\"");
+        return roleRepo.findById(roleId)
+                .chain(role -> permissionRepo.findByAppCode(role.getAppCode()).map(permissions -> {
+                            model.role = RoleOnly.fromDTO(role);
+                            model.permissions = permissions.stream()
+                                    .map(Permission::fromDTO)
+                                    .collect(Collectors.toMap(com.acme.authorization.json.Permission::getId, permission -> permission));
+
+                            model.rolePermissions = role.getPermissions().stream()
+                                    .sorted((o1, o2) -> o2.getPermission().getCreatedAt().compareTo(o1.getPermission().getCreatedAt()))
+                                    .map(rolePermission -> Permission.fromDTO(rolePermission.getPermission()))
+                                    .collect(Collectors.toMap(com.acme.authorization.json.Permission::getId, permission -> permission));
+                            return model;
+                }));
+    }
+
+    @WithTransaction
+    public Uni<PermissionPageModel> getPermission(Integer page, int size, String search, UserPrincipal principal) {
+        PanacheQuery<org.acme.authenticationService.data.entity.Permission> permissionPanacheQuery;
+
+        if (principal.getAppCode().equals("SYSTEM")) {
+            if (!StringUtil.isNullOrEmpty(search)) {
+                permissionPanacheQuery = permissionRepo.find("where (name like ?1)", Sort.descending("createdAt"), "%"+search.toLowerCase()+"%");
+            } else
+                permissionPanacheQuery = permissionRepo.findAll(Sort.descending("createdAt"));
+        } else {
+            String appCode = principal.getAppCode();
+
+            if (!StringUtil.isNullOrEmpty(search)) {
+                permissionPanacheQuery = permissionRepo.find("where (appCode=?1) and (name like ?2)", Sort.descending("createdAt"), appCode, "%"+search.toLowerCase()+"%");
+            } else
+                permissionPanacheQuery = permissionRepo.find("where (appCode=?1)", Sort.descending("createdAt"), appCode);
+        }
+        permissionPanacheQuery = permissionPanacheQuery.filter("deletedPermissionFilter", Parameters.with("isDeleted", false));
+
+        final PanacheQuery<org.acme.authenticationService.data.entity.Permission> query = permissionPanacheQuery;
+        return query.page(Page.of(page - 1, size))
+                .list().map(result -> result.stream().map(Permission::fromDTO).toList())
+                .chain(result -> query.count().map(count -> {
+                    PermissionPageModel model = WebUtils.createModel(new PermissionPageModel(), appName);
+                    model.user = principal.getUser();
+                    model.data = result;
+                    model.page = page;
+                    model.size = size;
+                    model.search = search;
+                    model.totalData = count.intValue();
+                    return model;
+                }));
+    }
+
+    @WithTransaction
+    public Uni<PermissionFormModel> createPermissionForm(PermissionFormModel baseModel, UserPrincipal principal) {
+        final PanacheQuery<Application> applicationPanacheQuery = getApplicationQuery(principal, "");;
+        return applicationPanacheQuery.list()
+                .map(listApp -> listApp.stream().map(
+                        app -> {
+                            ApplicationJson jsonApp = new ApplicationJson();
+                            jsonApp.setCode(app.getCode());
+                            jsonApp.setName(app.getName());
+                            return jsonApp;
+                        }
+                ).toList())
+                .map(result -> {
+                    baseModel.apps = result;
+                    return baseModel;
+                });
+    }
+
+    @WithTransaction
+    public Uni<Boolean> createPermission(PermissionRestForm permission, UserPrincipal principal) {
+        org.acme.authenticationService.data.entity.Permission ePermission = new org.acme.authenticationService.data.entity.Permission(permission.appCode, permission.code, permission.name);
+        ePermission.setCreatedBy(principal.getUser().getUsername());
+
+        return permissionRepo.findByAppAndCode(permission.appCode, permission.code)
+                .chain(perm -> {
+                    if (perm != null) throw new HttpException(HttpResponseStatus.CONFLICT.code(), "Permission: "+permission.code+" already exists in application:"+permission.appCode+"!");
+                    return permissionRepo.save(ePermission);
+                })
+                .map(Objects::nonNull);
+    }
+
+    @WithTransaction
+    public Uni<RoleOnly> addPermissionToRole(String id, RoleAddPermissionRestForm data, UserPrincipal principal) {
+        return roleRepo.findById(id)
+                .chain(result -> appRepo.findById(result.getAppCode())
+                        .chain(app -> permissionRepo.find("where id in (:ids)", Map.of("ids", Arrays.asList(data.permissions))).list()
+                                .onFailure().invoke(throwable -> logger.error("find in ids error: "+throwable.getMessage(), throwable))
+                                .map(permissions -> {
+                                    result.setUpdatedBy(principal.getUser().getUsername());
+                                    result.setUpdatedAt(new Date());
+                                    return permissions.stream().map(p -> {
+                                        if (result.getAppCode().equals(p.getAppCode()) || (app.getParent() != null && app.getParent().getCode().equals(p.getAppCode())))
+                                            return new RolePermission(result, p);
+                                        throw new IllegalArgumentException("Permission :"+p.getName()+" is not allowed to assigned to role:"+result.getName()+" because they are difference application!");
+                                    }).toList();
+                                }))
+                ).chain(rolePermissions -> rolePermissionRepo.persist(rolePermissions))
+                .chain(r -> roleRepo.findById(id))
+                .map(RoleOnly::fromDTO);
+    }
+
+    @WithTransaction
+    public Uni<Boolean> unAssignPermission(String roleId, String permissionId, String name) {
+        return roleRepo.findById(roleId)
+                .chain(role -> {
+                    if (role == null) throw new NotFoundException("Role with id:"+roleId+" not found!");
+                    return permissionRepo.findById(permissionId)
+                            .chain(permission -> {
+                                if (permission == null) throw new NotFoundException("Permission with id:"+permissionId+" not found!");
+                                return rolePermissionRepo.delete("where id.role.id=?1 and id.permission.id=?2", role.getId(), permission.getId())
+                                        .map(result -> {
+                                            logger.info("delete result:"+result);
+                                            return result > 0;
+                                        });
+                            })
+                            .onItem().call(result -> {
+                                role.setUpdatedAt(new Date());
+                                role.setUpdatedBy(name);
+                                return Uni.createFrom().item(true);
+                            })
+                            .onFailure().call(throwable -> {
+                                logger.error(throwable.getMessage(), throwable);
+                                return Uni.createFrom().item(false);
+                            });
                 });
     }
 }

@@ -1,23 +1,30 @@
 package org.acme.authenticationService.services;
 
+import com.acme.authorization.json.AuthenticationResponse;
+import com.acme.authorization.json.ResponseJson;
+import com.acme.authorization.utils.JsonUtils;
+import com.acme.authorization.utils.UrlUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.response.Response;
+import io.restassured.http.ContentType;
 import io.smallrye.mutiny.Uni;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
-import org.acme.authenticationService.data.entity.Application;
-import org.acme.authenticationService.data.entity.AuthUser;
-import org.acme.authenticationService.data.entity.Role;
-import org.acme.authenticationService.data.entity.UserRole;
+import org.acme.authenticationService.data.entity.*;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.hamcrest.Matchers;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static io.restassured.RestAssured.given;
 
@@ -26,12 +33,18 @@ public class AuthenticationEndpointTest {
 
     @Inject
     Logger logger;
+    private static final Random random = new Random();
 
+    @ConfigProperty(name = "quarkus.http.port", defaultValue = "10001")
+    public String port;
+
+    @Inject
+    ObjectMapper objectMapper;
 
     @Inject
     Mutiny.SessionFactory sf;
 
-//    @PostConstruct
+    @PostConstruct
     public void init() {
         AuthUser authUser = new AuthUser(
                 null,
@@ -60,6 +73,15 @@ public class AuthenticationEndpointTest {
                 "This is dummy test data"
         );
         role.setCreatedBy("TEST_UNIT");
+
+        List<Permission> permissions = Arrays.asList(
+                new Permission(data.getCode(), "CREATE_USER", "Create Test User"),
+                new Permission(data.getCode(), "VIEW_USER", "View Test User"),
+                new Permission(data.getCode(), "UPDATE_USER", "Update Test User"),
+                new Permission(data.getCode(), "CREATE_ROLE", "Create Role Test User"),
+                new Permission(data.getCode(), "ROLE_ADD_PERMISSION", "Add permission to Role Test User"),
+                new Permission(data.getCode(), "VIEW_ROLE", "View Roles Test User")
+        );
 
         Uni<?> userUni = sf.withTransaction(session -> {
             List<PanacheEntityBase> willPersisted = new ArrayList<>();
@@ -99,13 +121,32 @@ public class AuthenticationEndpointTest {
                             willPersisted.add(userRole);
                         }
                     }));
+
+            for (Permission p: permissions) {
+                existing = existing.chain(r -> RolePermission.find("where role.appCode=?1 role.code=?2 and permission.code=?3", role.getAppCode(), role.getCode(), p.getId())
+                        .firstResult()
+                        .onItem().invoke(existing1 -> {
+                            if (existing1 == null) {
+                                RolePermission rp = new RolePermission();
+                                rp.setRole(role);
+                                rp.setPermission(p);
+                                willPersisted.add(rp);
+                            }
+                        }));
+            }
             return existing.call(r -> session.persistAll(willPersisted.toArray()));
         });
-        userUni.subscribe().with(authUser1 -> logger.info("dummy user created:"));
+        userUni
+                .onFailure()
+                .invoke(throwable -> {
+                    assert throwable != null;
+                    logger.error("Error when creating test data: "+throwable.getMessage(), throwable);
+                })
+                .subscribe().with(authUser1 -> logger.info("dummy user created:"));
     }
 
     @Test
-    public void authenticationTest() {
+    public void authenticationTest() throws Throwable {
         init();
 
         JsonObject jo = Json.createObjectBuilder()
@@ -114,13 +155,84 @@ public class AuthenticationEndpointTest {
                 .add("app_code", "TEST_UNIT_APPLICATION")
                 .build();
         String body = jo.toString();
-        Response response = given().body(body)
-                .contentType("application/json")
+                given().body(body)
+                .contentType(ContentType.JSON)
                 .header("Accept", "application/json")
                 .post(URI.create("/api/v1/auth/authenticate"))
                 .then()
-                .statusCode(200)
-                .extract()
-                .response();
+                .statusCode(200);
+    }
+
+    @Test
+    public void testAuthenticateWithUnknownApp() {
+        JsonObject jo = Json.createObjectBuilder()
+                .add("username", "wayan_mastra@gmail.com")
+                .add("password", "password")
+                .add("app_code", "XX_APPLICATION")
+                .build();
+        String body = jo.toString();
+        given().body(body)
+                .contentType(ContentType.JSON)
+                .header("Accept", "application/json")
+                .post(URI.create("/api/v1/auth/authenticate"))
+                .then()
+                .statusCode(403)
+                .body(Matchers.is("{\"success\":false,\"message\":\"Application not found\"}"));
+
+        jo = Json.createObjectBuilder()
+                .add("username", "system@root.io")
+                .add("password", "password")
+                .add("app_code", "TEST_UNIT_APPLICATION")
+                .build();
+        body = jo.toString();
+        given().body(body)
+                .contentType(ContentType.JSON)
+                .header("Accept", "application/json")
+                .post(URI.create("/api/v1/auth/authenticate"))
+                .then()
+                .statusCode(404)
+                .body(Matchers.is("{\"success\":false,\"message\":\"Invalid credential\"}"));
+    }
+
+    @Test
+    public void testCreateUser() throws Throwable {
+        JsonObject jo = Json.createObjectBuilder()
+                .add("username", "wayan_mastra@gmail.com")
+                .add("password", "password")
+                .add("app_code", "TEST_UNIT_APPLICATION")
+                .build();
+        String body = jo.toString();
+        String sBody = UrlUtils.call(
+                HttpMethod.POST,
+                "http://localhost:"+port+"/api/v1/auth/authenticate",
+                body,
+                Map.of(HttpHeaders.CONTENT_TYPE+"", ContentType.JSON+"", HttpHeaders.ACCEPT+"", ContentType.JSON+""),
+                true
+        );
+
+//        assert "{}".equals(sBody):
+//                sBody;
+
+        ResponseJson<AuthenticationResponse> response = JsonUtils.fromJson(sBody, new TypeReference<>() {
+        });
+
+        assert response != null;
+
+
+        String username = "wayan.mastra+"+random.nextInt(999);
+        body = Json.createObjectBuilder()
+                .add("email", username+"@gmail.com")
+                .add("username", username)
+                .add("name", "Test Dummy User "+username)
+                .build().toString();
+
+        given().body(body)
+                .contentType(ContentType.JSON)
+                .accept(ContentType.JSON)
+                .auth().oauth2(response.getData().accessToken)
+                .post(URI.create("/api/v1/user"))
+                .then()
+                .body(Matchers.is("{}"))
+                .statusCode(200);
     }
 }

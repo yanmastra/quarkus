@@ -23,6 +23,14 @@ public class BaseModel {
         this.appName = appName;
     }
 
+    public int nextPage(){
+        return page+1;
+    }
+
+    public int prevPage(){
+        return Math.max(1, page -1);
+    }
+
     @Override
     public String toString() {
         return "BaseModel{" +

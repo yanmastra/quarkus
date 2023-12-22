@@ -6,7 +6,7 @@
   <parent>
     <groupId>com.acme</groupId>
     <artifactId>authorization-parent</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
   </parent>
   <artifactId>authorization</artifactId>
   <name>Authorization - Runtime</name>
@@ -30,6 +30,11 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-jsonb</artifactId>
     </dependency>
+
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-elytron-security</artifactId>
+  </dependency>
 
     <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
 <!--    <dependency>-->
@@ -80,6 +85,19 @@
             </path>
           </annotationProcessorPaths>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>io.smallrye</groupId>
+        <artifactId>jandex-maven-plugin</artifactId>
+        <version>3.1.2</version>
+        <executions>
+          <execution>
+            <id>make-index</id>
+            <goals>
+              <goal>jandex</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

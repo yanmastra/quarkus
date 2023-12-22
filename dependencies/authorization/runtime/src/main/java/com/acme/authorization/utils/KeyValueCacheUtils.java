@@ -12,7 +12,7 @@ public class KeyValueCacheUtils {
 
     private static Logger logger = Logger.getLogger(KeyValueCacheUtils.class.getName());
 
-    public static void saveCache(String cacheName, String key, String value, CacheUpdateMode cacheUpdateMode) {
+    public static synchronized void saveCache(String cacheName, String key, String value, CacheUpdateMode cacheUpdateMode) {
         if (StringUtil.isNullOrEmpty(key) || key.contains("=") || StringUtil.isNullOrEmpty(value) || value.contains("=") || cacheUpdateMode == null)
             throw new IllegalArgumentException("key or value contain not supported character!, (\"=\",\";\")");
 
@@ -55,7 +55,7 @@ public class KeyValueCacheUtils {
         }
     }
 
-    public static String findCache(String cacheName, String key) {
+    public static synchronized String findCache(String cacheName, String key) {
         File file = getCacheFileName(cacheName);
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
             String line;

@@ -82,6 +82,7 @@ public class UrlUtils {
         public MyHttpConnection(HttpURLConnection connection) {
             if (connection == null) throw new NullPointerException("Variable connection couldn't be null");
             this.connection = connection;
+            this.connection.setDoOutput(true);
         }
 
         @Override

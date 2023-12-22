@@ -1,6 +1,8 @@
 package org.acme.authenticationService.dao;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.quarkus.qute.RawString;
+import org.apache.commons.lang3.StringUtils;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RoleOnly extends Role {
@@ -26,5 +28,10 @@ public class RoleOnly extends Role {
     @Override
     public org.acme.authenticationService.data.entity.Role toDto() {
         return new org.acme.authenticationService.data.entity.Role(super.getId(), super.getAppCode(), super.getCode(), super.getName(), super.getDescription());
+    }
+
+    public RawString getRawDescription() {
+        if (StringUtils.isBlank(getDescription())) return null;
+        return new RawString(getDescription());
     }
 }

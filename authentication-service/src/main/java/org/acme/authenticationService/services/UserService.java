@@ -1,5 +1,7 @@
 package org.acme.authenticationService.services;
 
+import com.acme.authorization.security.UserPrincipal;
+import com.acme.authorization.utils.PasswordGenerator;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.panache.common.Sort;
 import io.smallrye.mutiny.Uni;
@@ -9,12 +11,17 @@ import jakarta.ws.rs.NotFoundException;
 import org.acme.authenticationService.dao.User;
 import org.acme.authenticationService.dao.UserOnly;
 import org.acme.authenticationService.dao.UserWithPermission;
+import org.acme.authenticationService.data.entity.AuthUser;
+import org.acme.authenticationService.data.entity.UserRole;
+import org.acme.authenticationService.data.repository.ApplicationRepository;
+import org.acme.authenticationService.data.repository.RoleRepository;
 import org.acme.authenticationService.data.repository.UserRepository;
 import org.acme.authenticationService.data.repository.UserRoleRepository;
 import org.jboss.logging.Logger;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class UserService {
@@ -23,13 +30,18 @@ public class UserService {
     UserRepository userRepository;
     @Inject
     UserRoleRepository userRoleRepository;
+    @Inject
+    ApplicationRepository appRepo;
+    @Inject
+    RoleRepository roleRepo;
+    @Inject MailService mailService;
 
     @Inject
     Logger logger;
 
     @WithTransaction
     public Uni<User> saveUser(UserOnly user) {
-        return userRepository.createUser(user.toDto()).onItem().transform(UserOnly::fromDto);
+        return userRepository.persist(user.toDto()).onItem().transform(UserOnly::fromDto);
     }
 
     @WithTransaction
@@ -58,5 +70,37 @@ public class UserService {
             });
             else throw new NotFoundException("AuthUser not found");
         });
+    }
+
+    public Uni<?> createNewUser(AuthUser authUser, String appCode, String roleCode, UserPrincipal principal) {
+
+        String password = PasswordGenerator.generatePassword(12, true);
+        authUser.setPasswordTextPlain(password);
+        authUser.setCreatedBy(principal.getName());
+
+        return appRepo.findById(appCode)
+                .chain(app -> roleRepo.findById(app.getCode(), roleCode).chain(role -> {
+                    authUser.setVerified(true);
+
+                    return userRepository.persist(authUser)
+                            .chain(saved -> {
+                                logger.info("saved user:"+saved+", role:"+role);
+                                return userRoleRepository.persist(new UserRole(saved, role));
+                            })
+                            .map(r -> Map.of("appName", app.getName(), "roleName", role.getName()));
+
+                }))
+                .onItem().call(r -> {
+                    logger.info("sending email to:"+authUser.getEmail());
+                    return mailService.createSignInfoEmail(
+                                    "EN",
+                                    authUser.getUsername(),
+                                    password,
+                                    authUser.getName(),
+                                    authUser.getEmail(),
+                                    r.get("appName"),
+                                    r.get("roleName"))
+                            .onFailure().invoke(throwable -> logger.error("error sending email:"+throwable.getMessage(), throwable));
+                });
     }
 }

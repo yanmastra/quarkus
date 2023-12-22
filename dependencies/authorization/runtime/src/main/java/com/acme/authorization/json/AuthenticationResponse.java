@@ -5,19 +5,19 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class AuthenticationResponse {
+public class AuthenticationResponse<E extends User> {
     @JsonProperty("access_token")
     public String accessToken;
     @JsonProperty("refresh_token")
     public String refreshToken;
 
     @JsonProperty("user")
-    public User user;
+    public E user;
 
     public AuthenticationResponse() {
     }
 
-    public AuthenticationResponse(String accessToken, String refreshToken, User user) {
+    public AuthenticationResponse(String accessToken, String refreshToken, E user) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.user = user;

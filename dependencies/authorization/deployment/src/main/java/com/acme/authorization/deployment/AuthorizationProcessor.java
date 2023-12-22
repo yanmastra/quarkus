@@ -32,7 +32,7 @@ class AuthorizationProcessor {
                 .setNonBlockingRequired(true)
                 .setPreMatching(true)
                 .setRegisterAsBean(true)
-                .setPriority(1)
+                .setPriority(0)
                 .build();
     }
 

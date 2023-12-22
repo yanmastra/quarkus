@@ -6,6 +6,7 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.json.Json;
+import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
@@ -32,7 +33,7 @@ public class ErrorMapper implements ResteasyReactiveAsyncExceptionMapper<Excepti
 
     @Override
     public void asyncResponse(Exception exception, AsyncExceptionMapperContext context) {
-        logger.error(requestContext.getUriInfo().getPath()+"::"+exception.getMessage(), exception);
+        logger.error(requestContext.getUriInfo().getPath() + "::" + exception.getMessage(), exception, exception.getCause());
 
         String message = null;
         int status = 500;
@@ -42,6 +43,9 @@ public class ErrorMapper implements ResteasyReactiveAsyncExceptionMapper<Excepti
             if (exception instanceof HttpException httpException) {
                 message = httpException.getPayload();
                 status = httpException.getStatusCode();
+            } else if (exception instanceof ClientErrorException clientError) {
+                message = clientError.getMessage();
+                status = clientError.getResponse().getStatus();
             } else if (exception instanceof SecurityException securityException) {
                 message = securityException.getMessage();
                 status = 403;
@@ -59,13 +63,12 @@ public class ErrorMapper implements ResteasyReactiveAsyncExceptionMapper<Excepti
                     .entity(responsePayload)
                     .type(MediaType.APPLICATION_JSON)
                     .build());
-            return;
-        }
-
-        try (Stream<HtmlErrorMapper> errorMapperStream = htmlErrorMappers.stream()) {
-            errorMapperStream.findFirst().ifPresent(htmlErrorMapper -> context.setResponse(htmlErrorMapper.getResponse(exception)));
-        } catch (Exception e){
-            logger.error(e.getMessage(), e);
+        } else {
+            try (Stream<HtmlErrorMapper> errorMapperStream = htmlErrorMappers.stream()) {
+                errorMapperStream.findFirst().ifPresent(htmlErrorMapper -> context.setResponse(htmlErrorMapper.getResponse(exception)));
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+            }
         }
     }
 }
