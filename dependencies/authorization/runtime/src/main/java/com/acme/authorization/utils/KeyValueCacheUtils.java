@@ -1,20 +1,30 @@
 package com.acme.authorization.utils;
 
 import io.quarkus.runtime.util.StringUtil;
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.jboss.logging.Logger;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 public class KeyValueCacheUtils {
-    private static final String WORKING_DIR = System.getenv("CACHE_DIRECTORY");
     private static final String CACHE_DIR = "/.cache";
 
     private static Logger logger = Logger.getLogger(KeyValueCacheUtils.class.getName());
 
+    public static synchronized void putCache(String cacheName, String key, String value){
+        saveCache(cacheName, key, value, CacheUpdateMode.ADD);
+    }
+
+    public static synchronized void removeCache(String cacheName, String key) {
+        saveCache(cacheName, key, "", CacheUpdateMode.REMOVE);
+    }
+
     public static synchronized void saveCache(String cacheName, String key, String value, CacheUpdateMode cacheUpdateMode) {
-        if (StringUtil.isNullOrEmpty(key) || key.contains("=") || StringUtil.isNullOrEmpty(value) || value.contains("=") || cacheUpdateMode == null)
+        if (StringUtil.isNullOrEmpty(key) || key.contains("=") || value.contains("=") || cacheUpdateMode == null)
             throw new IllegalArgumentException("key or value contain not supported character!, (\"=\",\";\")");
+
+        if (StringUtil.isNullOrEmpty(value)) value = "";
 
         File file = getCacheFileName(cacheName);
         StringBuilder cache = new StringBuilder();
@@ -103,9 +113,21 @@ public class KeyValueCacheUtils {
         return file;
     }
 
+    private static String getCacheDir() {
+        String cacheDir = null;
+        try {
+            cacheDir = ConfigProvider.getConfig().getConfigValue("cache_directory").getValue();
+        }catch (Exception e) {
+            logger.warn(e.getMessage());
+        }
+        if (StringUtil.isNullOrEmpty(cacheDir)) System.getenv("CACHE_DIRECTORY");
+        if (StringUtil.isNullOrEmpty(cacheDir)) cacheDir = System.getenv("user.dir");
+        return cacheDir;
+    }
+
     private static File getCacheFileName(String cacheName) {
         String cacheFileName = ".cache." + cacheName;
-        File dir = checkPath(WORKING_DIR + CACHE_DIR);
+        File dir = checkPath(getCacheDir() + CACHE_DIR);
         File file = new File(dir, cacheFileName);
         if (!file.exists()) {
             try {

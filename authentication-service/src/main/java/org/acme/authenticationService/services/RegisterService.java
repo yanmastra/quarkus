@@ -26,8 +26,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class RegisterService {
     private static final String REGISTER_USER_DATA = "RXEXGY";
-    private static final Random random = new Random();
-    private static final String otpMailSubject = "";
+    private final Random random = new Random();
 
     @Inject
     ReactiveMailer mailer;
@@ -84,7 +83,7 @@ public class RegisterService {
                         ));
     }
 
-    private static String getOtpCode() {
+    private String getOtpCode() {
         int[] codes = new int[3];
         codes[0] = random.nextInt(99);
         codes[1] = random.nextInt(99);

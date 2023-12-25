@@ -98,6 +98,30 @@ public class SeedServices {
                     return result.call(r -> session.persistAll(entities.toArray()));
                 })
                 .subscribe().with(r -> logger.info("SEEDING COMPLETE"));
+
+        sf.withTransaction(session -> session.createQuery("select A from Application A where code != 'SYSTEM' and deletedAt is null", Application.class).getResultList()
+                .chain(result -> {
+                    List<Permission> toBePersisted = new ArrayList<>();
+                    Uni<?> uniChecker = Uni.createFrom().nullItem();
+                    for (Application app: result) {
+                        for (Permission p: createPermission()) {
+                            uniChecker = uniChecker.call(r -> Permission.find("appCode=?1 and code=?2", app.getCode(), p.getCode()).firstResult()
+                                    .onItem().invoke(existingP -> {
+                                        if (existingP == null) {
+                                            logger.info("create permission:"+p.getCode()+" for app:"+app.getCode());
+                                            p.setId(null);
+                                            toBePersisted.add(p);
+                                        } else {
+                                            p.setId(((Permission) existingP).getId());
+                                        }
+                                        p.setCreatedBy(app.getCode());
+                                    })
+                            );
+                        }
+                    }
+                    return session.persistAll(toBePersisted.toArray());
+                }))
+                .subscribe().with(r -> logger.info("SEEDING 2 COMPLETE"));
     }
 
     private List<Permission> createPermission() {
