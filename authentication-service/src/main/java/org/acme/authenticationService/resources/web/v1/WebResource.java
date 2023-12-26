@@ -367,7 +367,6 @@ public class WebResource {
     @Path("users")
     @RolesAllowed({"CREATE_USER"})
     public Uni<Response> createUsers(@BeanParam UserRestForm user, @Context ContainerRequestContext context) {
-        logger.info("received:"+user);
         return webService.createUser(user, UserPrincipal.valueOf(context))
                 .onItem()
                 .transform(result -> {
@@ -520,7 +519,7 @@ public class WebResource {
 
     @GET
     @Path("permissions")
-    @RolesAllowed({"CREATE_PERMISSION"})
+    @RolesAllowed({"VIEW_PERMISSION"})
     public Uni<Response> getPermissions(
             @QueryParam("search") String search,
             @QueryParam("page") Integer page,

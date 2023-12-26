@@ -167,4 +167,14 @@ public class Application extends PanacheEntityBase implements Serializable {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    @Override
+    public String toString() {
+        return "Application{" +
+                "code='" + code + '\'' +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", parent="+parent+
+                '}';
+    }
 }

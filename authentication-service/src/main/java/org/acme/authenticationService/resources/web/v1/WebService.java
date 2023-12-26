@@ -30,6 +30,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -57,6 +59,8 @@ public class WebService {
     RolePermissionRepository rolePermissionRepo;
     @Inject
     UserService userService;
+    @Inject
+    UserAppRepository userAppRepository;
 
 
     @WithTransaction
@@ -79,21 +83,30 @@ public class WebService {
                             return home;
                         }));
                     } else {
-                        String appCode = ctx.getAppCode();
+                        String appCode = principal.getAppCode();
                         return appRepo.find("where code=?1", appCode).firstResult().chain(
-                                app -> appRepo.count("where parent=?1 and deletedAt is null", app).map(count -> {
+                                app -> appRepo.find("where parent=?1 and deletedAt is null", app).list().map(count -> {
                                     Home home = WebUtils.createModel(new Home(), app.getName());
-                                    home.applicationCount = count;
+                                    home.applicationCount = count.size()+1;
+                                    home.childAppCodes = new ArrayList<>(count.stream().map(Application::getCode).toList());
+                                    home.childAppCodes.add(app.getCode());
                                     return home;
                                 }))
-                                .chain(home -> roleRepo.findByApp(appCode).chain(result -> {
-                                    Uni<Long> countUni = Uni.createFrom().item(0L);
-                                    for (Role r: result) {
-                                        countUni = countUni.chain(count -> userRoleRepo.count("where role=?1", r).map(res -> count + res));
-                                    }
-                                    return countUni;
-                                }).map(userCount -> {
-                                    home.userCount = userCount;
+                                .chain(home -> userAppRepository.find("where appCode in (:appCodes)", Map.of(
+                                                "appCodes", home.childAppCodes
+                                        ))
+                                        .count().map(uCount -> {
+                                    home.userCount = uCount;
+                                    return home;
+                                })).chain(home -> roleRepo.find("where appCode in (:appCodes)", Map.of(
+                                        "appCodes", home.childAppCodes
+                                )).count().map(count -> {
+                                    home.roleCount = count;
+                                    return home;
+                                })).chain(home -> permissionRepo.find("where appCode in (:appCodes)", Map.of(
+                                        "appCodes", home.childAppCodes
+                                )).count().map(count -> {
+                                    home.permissionCount = count;
                                     return home;
                                 }));
                     }
@@ -274,47 +287,73 @@ public class WebService {
             });
         } else {
             String appCode = principal.getAppCode();
-            resultUni = roleRepo.findByApp(appCode).map(listRole -> listRole.stream().map(Role::getId).toList())
-                    .chain(listRoleIds -> {
-                        PanacheQuery<UserRole> userRolePanacheQuery;
-                        if (StringUtils.isNotBlank(search))
-                            userRolePanacheQuery = userRoleRepo.find(
-                                    "where role.id in (:ids) and (authUser.name like :search or authUser.username like :search or authUser.email like :search) and authUser.deletedAt is null",
-                                    Sort.ascending("authUser.name"),
-                                    Map.of(
-                                            "ids", listRoleIds,
-                                            "search", search
-                                    )
-                            );
-                        else
-                            userRolePanacheQuery = userRoleRepo.find(
-                                    "where role.id in (:ids) and authUser.deletedAt is null",
-                                    Sort.ascending("authUser.name"),
-                                    Parameters.with("ids", listRoleIds)
-                            );
+            UserPageModel xModel = WebUtils.createModel(new UserPageModel(), appName);
 
-                        UserPageModel model = new UserPageModel();
+            resultUni = userAppRepository.find("where appCode = :appCode", Map.of("appCode", appCode)).list().chain(result -> {
 
-                        return userRolePanacheQuery.count().map(count -> {
-                            model.totalData = count.intValue();
-                            return model;
-                        }).chain(xModel -> userRolePanacheQuery.page(Page.of(page -1, size)).list()
-                                .map(userList -> {
-                                    List<UserOnly> userOnliest = new ArrayList<>();
-                                    userList.forEach(item -> {
-                                        userOnliest.add(UserOnly.fromDto(item.getUser()));
-                                        List<RoleOnly> roleOnliest = xModel.roles.computeIfAbsent(item.getUser().getId(), k -> new ArrayList<>());
-                                        roleOnliest.add(RoleOnly.fromDTO(item.getRole()));
-                                    });
-                                    xModel.appName = principal.getAppCode();
-                                    xModel.user = principal.getUser();
-                                    xModel.data = userOnliest;
-                                    xModel.page = page;
-                                    xModel.size = size;
-                                    xModel.search = search;
-                                    return xModel;
-                                }));
-                    });
+                if (result.isEmpty()) {
+                    xModel.user = principal.getUser();
+                    xModel.data = new ArrayList<>();
+                    xModel.page = page;
+                    xModel.size = size;
+                    xModel.search = search;
+                    return Uni.createFrom().item(xModel);
+                } else {
+                    logger.info("finding userApp page:"+(page-1)+", size:"+size);
+
+                    PanacheQuery<AuthUser> usersPanacheQuery2;
+                    List<String> userIds = result.stream().map(UserApp::getUserId).toList();
+                    Map<String, Object> params = new HashMap<>(Map.of("ids", userIds));
+
+                    if (StringUtils.isNotBlank(search)) {
+                        params.put("search", search);
+
+                        usersPanacheQuery2 = userRepo.find("where id in :ids and (name like :search or username like :search or email like :search)",
+                                Sort.descending("createdAt"),
+                                params
+                        );
+                    } else {
+                        usersPanacheQuery2 = userRepo.find("where id in :ids",
+                                Sort.descending("createdAt"),
+                                params);
+                    }
+                    usersPanacheQuery2 = usersPanacheQuery2.filter("deletedAppFilter", Parameters.with("isDeleted", false));
+                    final PanacheQuery<AuthUser> authUserPanacheQuery = usersPanacheQuery2;
+
+                    return authUserPanacheQuery.count().map(count -> {
+                        xModel.totalData = count.intValue();
+                        return true;
+                    }).chain(r -> authUserPanacheQuery.page(page -1, size).list()
+                            .onFailure().invoke(throwable -> {
+                                logger.error("error after query page:" + throwable.getMessage(), throwable);
+                            })
+                            .map(userList -> {
+                                logger.error("found userList:"+userList.size());
+                                xModel.user = principal.getUser();
+                                xModel.data = userList.stream().map(UserOnly::fromDto).toList();
+                                xModel.page = page;
+                                xModel.size = size;
+                                xModel.search = search;
+                                return xModel;
+                            }));
+                }
+            }).chain(yModel -> {
+                Uni<?> uniProcess = Uni.createFrom().nullItem();
+                for (UserOnly u: xModel.data) {
+                    uniProcess = uniProcess.chain(r -> userRoleRepo.find("where authUser.id=?1 and role.deletedAt is null", u.getId())
+                            .list()
+                            .map(userRoles -> {
+                                if (!userRoles.isEmpty()) {
+                                    userRoles.forEach(userRole -> xModel.roles.computeIfAbsent(u.getId(), s -> new ArrayList<>())
+                                            .add(RoleOnly.fromDTO(userRole.getRole())));
+                                    return true;
+                                }
+                                return false;
+                            })
+                    );
+                }
+                return uniProcess;
+            }).map(r -> xModel);
         }
         return resultUni.map(data -> {
             data.roles.forEach((k, v) -> {

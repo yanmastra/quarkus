@@ -12,11 +12,9 @@ import org.acme.authenticationService.dao.User;
 import org.acme.authenticationService.dao.UserOnly;
 import org.acme.authenticationService.dao.UserWithPermission;
 import org.acme.authenticationService.data.entity.AuthUser;
+import org.acme.authenticationService.data.entity.UserApp;
 import org.acme.authenticationService.data.entity.UserRole;
-import org.acme.authenticationService.data.repository.ApplicationRepository;
-import org.acme.authenticationService.data.repository.RoleRepository;
-import org.acme.authenticationService.data.repository.UserRepository;
-import org.acme.authenticationService.data.repository.UserRoleRepository;
+import org.acme.authenticationService.data.repository.*;
 import org.jboss.logging.Logger;
 
 import java.util.HashSet;
@@ -35,6 +33,8 @@ public class UserService {
     @Inject
     RoleRepository roleRepo;
     @Inject MailService mailService;
+    @Inject
+    UserAppRepository userAppRepository;
 
     @Inject
     Logger logger;
@@ -86,6 +86,10 @@ public class UserService {
                             .chain(saved -> {
                                 logger.info("saved user:"+saved+", role:"+role);
                                 return userRoleRepository.persist(new UserRole(saved, role));
+                            })
+                            .chain(saved -> {
+                                logger.info("saved userRole:"+saved+", app:"+app);
+                                return userAppRepository.persist(new UserApp(saved.getUser(), app));
                             })
                             .map(r -> Map.of("appName", app.getName(), "roleName", role.getName()));
 

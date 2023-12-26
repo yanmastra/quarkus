@@ -14,9 +14,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.jboss.logging.Logger;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @ApplicationScoped
 public class SeedServices {
@@ -61,6 +59,9 @@ public class SeedServices {
                                     logger.info("ROOT PASSWORD:"+pass);
                                     authUser.setVerified(true);
                                     entities.add(authUser);
+
+                                    UserApp userApp = new UserApp(authUser, application);
+                                    entities.add(userApp);
                                 } else {
                                     authUser.setId(((AuthUser) rx).getId());
                                 }
@@ -99,10 +100,12 @@ public class SeedServices {
                 })
                 .subscribe().with(r -> logger.info("SEEDING COMPLETE"));
 
+
+        List<Permission> toBePersisted = new ArrayList<>();
         sf.withTransaction(session -> session.createQuery("select A from Application A where code != 'SYSTEM' and deletedAt is null", Application.class).getResultList()
                 .chain(result -> {
-                    List<Permission> toBePersisted = new ArrayList<>();
                     Uni<?> uniChecker = Uni.createFrom().nullItem();
+
                     for (Application app: result) {
                         for (Permission p: createPermission()) {
                             uniChecker = uniChecker.call(r -> Permission.find("appCode=?1 and code=?2", app.getCode(), p.getCode()).firstResult()
@@ -110,21 +113,55 @@ public class SeedServices {
                                         if (existingP == null) {
                                             logger.info("create permission:"+p.getCode()+" for app:"+app.getCode());
                                             p.setId(null);
+                                            p.setAppCode(app.getCode());
                                             toBePersisted.add(p);
                                         } else {
                                             p.setId(((Permission) existingP).getId());
                                         }
-                                        p.setCreatedBy(app.getCode());
                                     })
                             );
                         }
                     }
-                    return session.persistAll(toBePersisted.toArray());
-                }))
+                    return uniChecker;
+                }).chain(r -> session.persistAll(toBePersisted.toArray()).onFailure().invoke(throwable -> {
+                    logger.error(throwable.getMessage(), throwable);
+                })))
                 .subscribe().with(r -> logger.info("SEEDING 2 COMPLETE"));
+
+        List<UserApp> userAppToBePersisted = new ArrayList<>();
+        sf.withTransaction(session -> session.createQuery("select U from AuthUser U", AuthUser.class)
+                .getResultList()
+                .chain(result -> {
+                    Uni<?> uniChecker = Uni.createFrom().nullItem();
+
+                    for (AuthUser ua: result) {
+                        uniChecker = uniChecker.chain(r -> session.createQuery("select UR from UserRole UR where UR.authUser.id = :userId", UserRole.class)
+                                .setParameter("userId", ua.getId())
+                                .getResultList())
+                                .chain(xUserRoles -> {
+                                    Uni<?> uniRoleChecker = Uni.createFrom().nullItem();
+                                    for (UserRole ur: xUserRoles) {
+                                        uniRoleChecker = uniRoleChecker.chain(r -> session.createQuery("select UA from UserApp UA where UA.userId= :userId and UA.appCode= :appCode", UserApp.class)
+                                                .setParameter("userId", ua.getId())
+                                                .setParameter("appCode", ur.getRole().getAppCode())
+                                                .getResultList())
+                                                .map(list -> {
+                                                    if (list.isEmpty()) {
+                                                        userAppToBePersisted.add(new UserApp(ua.getId(), ur.getRole().getAppCode()));
+                                                    }
+                                                    return false;
+                                                });
+                                    }
+                                    return uniRoleChecker;
+                                });
+                    }
+                    return uniChecker;
+                })
+                .chain(r -> session.persistAll(userAppToBePersisted.toArray()).onFailure().invoke(throwable -> logger.error(throwable.getMessage(), throwable))))
+                .subscribe().with(r -> logger.info("SEEDING 3 COMPLETE"));
     }
 
-    private List<Permission> createPermission() {
+    public List<Permission> createPermission() {
         return new ArrayList<>(Arrays.asList(
                 new Permission("SYSTEM", "CREATE_SYS_USER", "Create System AuthUser"),
                 new Permission("SYSTEM", "UPDATE_SYS_USER", "Update System AuthUser"),

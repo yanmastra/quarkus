@@ -222,14 +222,7 @@ public class AuthUser extends PanacheEntityBase implements Serializable {
                 "id='" + id + '\'' +
                 ", username='" + username + '\'' +
                 ", email='" + email + '\'' +
-                ", password='" + password + '\'' +
                 ", name='" + name + '\'' +
-                ", createdAt=" + createdAt +
-                ", createdBy='" + createdBy + '\'' +
-                ", updatedAt=" + updatedAt +
-                ", updatedBy='" + updatedBy + '\'' +
-                ", deletedAt=" + deletedAt +
-                ", deletedBy='" + deletedBy + '\'' +
                 '}';
     }
 }

@@ -111,12 +111,6 @@ public class Role extends PanacheEntityBase implements Serializable {
                 ", description='" + description + '\'' +
                 ", appCode='" + appCode + '\'' +
                 ", code='" + code + '\'' +
-                ", createdAt=" + createdAt +
-                ", createdBy='" + createdBy + '\'' +
-                ", updatedAt=" + updatedAt +
-                ", updatedBy='" + updatedBy + '\'' +
-                ", deletedAt=" + deletedAt +
-                ", deletedBy='" + deletedBy + '\'' +
                 '}';
     }
 

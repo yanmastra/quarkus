@@ -34,7 +34,7 @@ public class WebErrorMapper implements HtmlErrorMapper {
 
     @Override
     public Response getResponse(Throwable e) {
-        logger.warn("Handling error:"+e.getMessage(), e);
+
         int status = 500;
         String messages = e.getMessage();
         if (e instanceof HttpException httpException) {
@@ -45,8 +45,13 @@ public class WebErrorMapper implements HtmlErrorMapper {
             status = 403;
         }
 
-        ErrorModel error = new ErrorModel(status, messages);
+        logger.warn("Handling error:"+e.getMessage(), e);
+        if (e.getCause() != null) {
+            messages = e.getCause().getMessage();
+            logger.error(e.getCause().getMessage(), e.getCause());
+        }
 
+        ErrorModel error = new ErrorModel(status, messages);
         try {
             MultivaluedMap<String, String> params = requestContext.getUriInfo().getQueryParameters();
             String redirect = params.getFirst("redirect");
