@@ -2,10 +2,14 @@ package org.acme.authenticationService.dao;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Column;
 import org.acme.authenticationService.data.entity.Application;
 import org.jboss.resteasy.reactive.RestForm;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApplicationJson {
@@ -39,10 +43,12 @@ public class ApplicationJson {
     private Date deletedAt;
     @JsonProperty( "deleted_by")
     private String deletedBy;
+    @JsonProperty("adds_user_data_fields")
+    private Set<String> additionalUserDataFields;
 
     public static ApplicationJson fromDto(Application application) {
         if (application == null) return null;
-        return new ApplicationJson(
+        ApplicationJson app = new ApplicationJson(
                 application.getCode(),
                 application.getName(),
                 application.getSecretKey(),
@@ -52,6 +58,21 @@ public class ApplicationJson {
                 application.getUpdatedAt(),
                 application.getUpdatedBy()
         );
+
+        app.setAdditionalUserDataFields(new HashSet<>(Arrays.asList(application.getAdditionalUserDataFields().split(","))));
+        return app;
+    }
+
+    public Application toDto() {
+        Application application = new Application(getCode(), getName(), getDescription());
+        getAdditionalUserDataFields().forEach(application::addAdditionalUserDataField);
+        application.setCreatedBy(getCreatedBy());
+        application.setUpdatedBy(getUpdatedBy());
+        application.setDeletedBy(getDeletedBy());
+        application.setCreatedAt(getCreatedAt());
+        application.setUpdatedAt(getUpdatedAt());
+        application.setDeletedAt(getDeletedAt());
+        return application;
     }
 
     public ApplicationJson() {
@@ -162,6 +183,14 @@ public class ApplicationJson {
 
     public void setParentCode(String parentCode) {
         this.parentCode = parentCode;
+    }
+
+    public Set<String> getAdditionalUserDataFields() {
+        return additionalUserDataFields;
+    }
+
+    public void setAdditionalUserDataFields(Set<String> additionalUserDataFields) {
+        this.additionalUserDataFields = additionalUserDataFields;
     }
 
     @Override

@@ -3,9 +3,12 @@ package com.acme.authorization.json;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.quarkus.runtime.util.StringUtil;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public abstract class User implements Serializable {
@@ -29,6 +32,9 @@ public abstract class User implements Serializable {
     private Date deletedAt;
     @JsonProperty("deleted_by")
     private String deletedBy;
+
+    @JsonProperty("additional_data")
+    private Map<String, AdditionalUserDataJson> additionalData;
 
     public User() {
     }
@@ -128,6 +134,34 @@ public abstract class User implements Serializable {
 
     public void setDeletedBy(String deletedBy) {
         this.deletedBy = deletedBy;
+    }
+
+    public Map<String, AdditionalUserDataJson> getAdditionalData() {
+        if (additionalData == null) additionalData = new HashMap<>();
+        return additionalData;
+    }
+
+    /**
+     * to set additional data of User,
+     * @param additionalData additional data with format Map&#60app_code__field_code, UserAdditionalData&#62
+     */
+    public void setAdditionalData(Map<String, AdditionalUserDataJson> additionalData) {
+        this.additionalData = additionalData;
+    }
+
+    public String getAdditionalValue(String fieldCode) {
+        if (StringUtil.isNullOrEmpty(fieldCode)) throw new IllegalArgumentException(getClass().getName()+".getAdditionalValue(String fieldCode), 'fieldCode' can't be empty!");
+        String[] appAndField = fieldCode.split("__");
+        if (appAndField.length == 1) {
+            return getAdditionalData().entrySet().stream()
+                    .filter(entry -> fieldCode.equals(entry.getKey().substring(entry.getKey().indexOf("__"))))
+                    .map(entry -> entry.getValue().getValue())
+                    .findFirst().orElse(null);
+        } else if (appAndField.length == 2) {
+            AdditionalUserDataJson data = getAdditionalData().get(fieldCode);
+            if (data != null) return data.getValue();
+        }
+        return null;
     }
 
     @JsonIgnore

@@ -1,5 +1,6 @@
 package org.acme.authenticationService.data.entity;
 
+import com.acme.authorization.utils.Constants;
 import com.acme.authorization.utils.PasswordGenerator;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.CascadeType;
@@ -9,8 +10,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.*;
 
 import java.io.Serializable;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Entity
 @Table(name = "application")
@@ -31,7 +33,7 @@ public class Application extends PanacheEntityBase implements Serializable {
     @JoinColumn(name = "parent_app_code", referencedColumnName = "code")
     private Application parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<Application> children;
 
     @CreationTimestamp
@@ -51,6 +53,9 @@ public class Application extends PanacheEntityBase implements Serializable {
     private Date deletedAt;
     @Column(name = "deleted_by", length = 64)
     private String deletedBy;
+
+    @Column(name = "adds_user_data_fields")
+    private String additionalUserDataFields;
 
     @PrePersist
     public void generateSecretKey() {
@@ -166,6 +171,42 @@ public class Application extends PanacheEntityBase implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getAdditionalUserDataFields() {
+        if (additionalUserDataFields == null) additionalUserDataFields = "";
+        return additionalUserDataFields;
+    }
+
+    public void setAdditionalUserDataFields(String additionalUserDataFields) {
+        this.additionalUserDataFields = additionalUserDataFields;
+    }
+
+    public void setAdditionalUserDataFields(String[] fields) {
+        if (fields == null || fields.length == 0) throw new IllegalArgumentException(getClass().getName() + ".setAdditionalUserDataFields(String[] fields): 'fields' can't be null or empty!");
+
+        this.additionalUserDataFields = Stream.of(fields).map(field -> field
+                        .replaceAll(Constants.REGEX_SPECIAL_CHARACTER, "")
+                        .replaceAll(Constants.REGEX_ANY_SPACE, "_")
+                        .toLowerCase()
+                ).collect(Collectors.joining(","));
+    }
+
+    public void addAdditionalUserDataField(String field) {
+        if (StringUtils.isBlank(field)) throw new IllegalArgumentException(getClass().getName() + ".addAdditionalUserDataField(String field): 'field' can't be null or empty!");
+        field = field.replaceAll(Constants.REGEX_SPECIAL_CHARACTER, "")
+                .replaceAll(Constants.REGEX_ANY_SPACE, "_")
+                .toLowerCase();
+
+        Set<String> fields;
+        if (StringUtils.isBlank(additionalUserDataFields)) {
+            additionalUserDataFields = "";
+            fields = new HashSet<>();
+        } else {
+            fields = new HashSet<>(Arrays.asList(additionalUserDataFields.split(",")));
+        }
+        fields.add(field);
+        additionalUserDataFields = String.join(",", fields);
     }
 
     @Override

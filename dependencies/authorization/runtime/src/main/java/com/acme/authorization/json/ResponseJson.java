@@ -13,6 +13,15 @@ public class ResponseJson<E> {
     @JsonProperty("data")
     private E data;
 
+    @JsonProperty("search")
+    private String search;
+    @JsonProperty("page")
+    private Integer page = null;
+    @JsonProperty("size")
+    private Integer size = null;
+    @JsonProperty("total_data")
+    private Integer totalData = null;
+
     public ResponseJson() {
     }
 
@@ -57,6 +66,41 @@ public class ResponseJson<E> {
 
     public void setData(E data) {
         this.data = data;
+    }
+
+    @JsonIgnore
+    public String getSearch() {
+        return search;
+    }
+
+    public void setSearch(String search) {
+        this.search = search;
+    }
+
+    @JsonIgnore
+    public int getPage() {
+        return page;
+    }
+
+    public void setPage(int page) {
+        this.page = page;
+    }
+    @JsonIgnore
+    public int getSize() {
+        return size;
+    }
+
+    public void setSize(int size) {
+        this.size = size;
+    }
+
+    @JsonIgnore
+    public int getTotalData() {
+        return totalData;
+    }
+
+    public void setTotalData(int totalData) {
+        this.totalData = totalData;
     }
 
     @JsonIgnore

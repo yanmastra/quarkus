@@ -12,10 +12,10 @@ public class UserApp extends PanacheEntityBase implements Serializable {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(length = 36)
     private String id;
-    //    @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
+//    @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
     @Column(name = "user_id", length = 40, nullable = false)
     private String userId;
-    //    @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
+//    @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
     @Column(name = "app_code", length = 40, nullable = false)
     private String appCode;
 

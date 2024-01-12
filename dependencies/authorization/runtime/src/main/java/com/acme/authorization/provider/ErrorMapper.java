@@ -1,11 +1,14 @@
 package com.acme.authorization.provider;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.runtime.util.StringUtil;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.json.Json;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -21,8 +24,6 @@ import java.util.stream.Stream;
 @Singleton
 public class ErrorMapper implements ResteasyReactiveAsyncExceptionMapper<Exception> {
 
-    @Inject
-    ObjectMapper objectMapper;
     @Inject
     Logger logger;
     @Inject
@@ -54,10 +55,14 @@ public class ErrorMapper implements ResteasyReactiveAsyncExceptionMapper<Excepti
                 message = cause == null ? exception.getMessage() : cause.getMessage();
             }
 
-            String responsePayload = Json.createObjectBuilder()
-                    .add("success", false)
-                    .add("message", message)
-                    .build().toString();
+            JsonObjectBuilder job = Json.createObjectBuilder()
+                    .add("success", false);
+            if (StringUtil.isNullOrEmpty(message)) {
+                job.add("message", JsonValue.NULL);
+            } else {
+                job.add("message", message);
+            }
+            String responsePayload = job.build().toString();
 
             context.setResponse(Response.status(status)
                     .entity(responsePayload)

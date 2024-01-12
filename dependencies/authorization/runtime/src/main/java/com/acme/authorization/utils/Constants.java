@@ -6,4 +6,6 @@ public interface Constants {
     String PATH_AUTHORIZATION_COOKIE = "/web/";
     String COOKIE_MESSAGES = "COOKIE_MESSAGES";
     String COOKIE_MESSAGES_SUCCESS = "COOKIE_MESSAGES_SUCCESS";
+    String REGEX_SPECIAL_CHARACTER="[$&+,:;=\\\\?@#|/'<>.^*()%!-]";
+    String REGEX_ANY_SPACE="\\s+";
 }

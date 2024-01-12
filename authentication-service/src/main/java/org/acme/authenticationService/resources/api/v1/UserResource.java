@@ -1,5 +1,7 @@
 package org.acme.authenticationService.resources.api.v1;
 
+import com.acme.authorization.json.ResponseJson;
+import com.acme.authorization.security.UserPrincipal;
 import com.acme.authorization.security.UserSecurityContext;
 import com.acme.authorization.utils.ValidationUtils;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -11,11 +13,14 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
+import org.acme.authenticationService.dao.UpdatePasswordRequest;
 import org.acme.authenticationService.dao.UserOnly;
 import org.acme.authenticationService.services.UserService;
 import org.jboss.logging.Logger;
 
 import java.util.List;
+import java.util.Map;
 
 @Path("/api/v1/user")
 @Produces(MediaType.APPLICATION_JSON)
@@ -29,16 +34,20 @@ public class UserResource {
 
     @RolesAllowed({"CREATE_USER"})
     @POST
-    public Uni<Response> create(UserOnly user, @Context UserSecurityContext context) {
+    public Uni<Response> create(UserOnly user, @Context SecurityContext context) {
         if (!ValidationUtils.isEmail(user.getEmail())) {
             throw new HttpException(HttpResponseStatus.BAD_REQUEST.code(), "Incorrect email format");
         }
 
         try {
-            user.setCreatedBy(context.getUserPrincipal().getName());
-            return userService.saveUser(user)
+            UserPrincipal principal = UserPrincipal.valueOf(context);
+            user.setCreatedBy(principal.getName());
+            return userService.saveUser(user, principal)
                     .onItem().transform(r -> Response.status(Response.Status.OK).entity(r).build())
-                    .onFailure().transform(throwable -> new HttpException(500, throwable.getMessage()));
+                    .onFailure().transform(throwable -> {
+                        logger.error(throwable.getMessage(), throwable);
+                        return new HttpException(500, throwable.getMessage());
+                    });
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             return Uni.createFrom().nullItem();
@@ -70,7 +79,7 @@ public class UserResource {
         try {
             user.setUpdatedBy(context.getUserPrincipal().getName());
             return userService.updateUser(id, user)
-                    .onItem().transform(r -> Response.status(Response.Status.OK).entity(r).build())
+                    .onItem().transform(r -> Response.ok(r).build())
                     .onFailure().transform(throwable -> {
                         logger.error(throwable.getMessage(), throwable);
                         return new HttpException(500, throwable.getMessage());
@@ -83,8 +92,43 @@ public class UserResource {
 
     @GET
     @RolesAllowed({"VIEW_ALL", "VIEW_USER"})
-    public Uni<List<org.acme.authenticationService.dao.UserOnly>> getUser() {
+    @Produces(MediaType.APPLICATION_JSON)
+    public Uni<Response> getUser(
+            @QueryParam("page") Integer page,
+            @QueryParam("size") Integer size,
+            @QueryParam("search") String search,
+            @Context SecurityContext context
+    ) {
         logger.info("get user");
-        return userService.findAll();
+        if (page == null || page < 1) page = 1;
+        if (size == null) size = 20;
+        size = Math.max(size, 5);
+
+        return userService.findAll(page, size, search, UserPrincipal.valueOf(context))
+                .map(result -> Response.ok(result).build());
+    }
+
+    @GET
+    @Path("profile")
+    public Uni<ResponseJson<UserOnly>> getProfile(@Context SecurityContext context) {
+        return Uni.createFrom().item(UserPrincipal.valueOf(context))
+                .map(principal -> {
+                    com.acme.authorization.json.UserOnly userOnly = UserPrincipal.valueOf(context).getUser();
+                    ResponseJson<UserOnly> responseJson = new ResponseJson<>(true, null);
+                    responseJson.setData(new UserOnly(userOnly));
+                    responseJson.getData().setRolesIds(principal.getUser().getRolesIds());
+                    return responseJson;
+                });
+    }
+
+    @POST
+    @Path("update_password")
+    public Uni<Response> updatePassword(UpdatePasswordRequest request, @Context SecurityContext context) {
+        return userService.updatePassword(request, UserPrincipal.valueOf(context))
+                .onItem().transform(r -> Response.ok(r).build())
+                .onFailure().transform(throwable -> {
+                    logger.error(throwable.getMessage(), throwable);
+                    return new HttpException(500, throwable.getMessage());
+                });
     }
 }

@@ -17,18 +17,21 @@ public class RegisterRequestJson implements Serializable {
     private String phone;
     @JsonProperty("process_id")
     private String processId;
-    @JsonProperty("role_id")
+    @JsonProperty("role_code")
     private String roleCode;
     @JsonProperty("application_code")
     private String applicationCode;
+    @JsonProperty("otp_key")
+    private String otpKey;
+    @JsonProperty("otp_code")
+    private String otpCode;
 
     public RegisterRequestJson(){}
 
-    @Nullable
     public String getContact() {
+        if (StringUtils.isBlank(email) && StringUtils.isBlank(phone)) throw new IllegalArgumentException("Email and Phone number couldn't be empty!. One of them should be filled with correct value!");
         if (StringUtils.isNotBlank(email)) return email;
-        if (StringUtils.isNotBlank(phone)) return phone;
-        return null;
+        return phone;
     }
 
     public String getEmail() {
@@ -73,6 +76,22 @@ public class RegisterRequestJson implements Serializable {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getOtpKey() {
+        return otpKey;
+    }
+
+    public void setOtpKey(String otpKey) {
+        this.otpKey = otpKey;
+    }
+
+    public String getOtpCode() {
+        return otpCode;
+    }
+
+    public void setOtpCode(String otpCode) {
+        this.otpCode = otpCode;
     }
 
     @Override

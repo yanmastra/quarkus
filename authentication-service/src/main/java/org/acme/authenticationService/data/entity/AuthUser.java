@@ -2,16 +2,14 @@ package org.acme.authenticationService.data.entity;
 
 import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.*;
 import org.hibernate.annotations.*;
 
 import java.io.Serializable;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(
@@ -69,6 +67,9 @@ public class AuthUser extends PanacheEntityBase implements Serializable {
     @Column(name = "deleted_by", length = 64)
     private String deletedBy;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<AdditionalUserData> additionalUserData;
+
     @PrePersist
     private void generateUUID() {
         if (id == null) {
@@ -101,6 +102,15 @@ public class AuthUser extends PanacheEntityBase implements Serializable {
         if (roles == null) roles = new HashSet<>();
         UserRole rp = new UserRole(this, role);
         roles.add(rp);
+    }
+
+    public List<AdditionalUserData> getAdditionalUserData() {
+        if (additionalUserData == null) additionalUserData = new ArrayList<>();
+        return additionalUserData;
+    }
+
+    public void setAdditionalUserData(List<AdditionalUserData> additionalUserData) {
+        this.additionalUserData = additionalUserData;
     }
 
     public String getId() {

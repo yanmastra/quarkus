@@ -8,10 +8,7 @@ import com.acme.authorization.utils.ValidationUtils;
 import io.smallrye.mutiny.Uni;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -43,9 +40,9 @@ public class RegisterResource {
     @GET
     @PermitAll
     public Uni<ResponseJson<Map<String, String>>> getRegisterProcessId(@Context ContainerRequestContext context) {
-        logger.info("get register id from:"+context.getUriInfo().getRequestUri().getHost()+", agent:"+context.getHeaderString("Agent"));
+        logger.info("get register id from:"+context.getUriInfo().getBaseUri().getHost()+":"+context.getUriInfo().getBaseUri().getPort()+", agent:"+context.getHeaderString("User-Agent"));
         String registerID = UUID.randomUUID().toString();
-        KeyValueCacheUtils.saveCache(REGISTER_PROCESS_ID, registerID, DateTimeUtils.formattedUtcDate(DateUtils.addMinutes(new Date(), 20)), CacheUpdateMode.ADD);
+        KeyValueCacheUtils.saveCache(REGISTER_PROCESS_ID, registerID, DateTimeUtils.formattedUtcDate(DateUtils.addMinutes(new Date(), 30)), CacheUpdateMode.ADD);
         ResponseJson<Map<String, String>> response = new ResponseJson<>();
         response.setSuccess(true);
         response.setData(Collections.singletonMap("process_id", registerID));
@@ -54,17 +51,22 @@ public class RegisterResource {
 
     @POST
     @PermitAll
-    public Uni<ResponseJson<RegisterResponseJson>> register(RegisterRequestJson requestJson, @Context ContainerRequestContext context) throws CredentialExpiredException {
+    public Uni<ResponseJson<RegisterResponseJson>> register(
+            @QueryParam("lang") String lang,
+            RegisterRequestJson requestJson,
+            @Context ContainerRequestContext context
+    ) throws CredentialExpiredException {
         logger.info("register from:"+context.getUriInfo().getRequestUri().getHost()+", agent:"+context.getHeaderString("Agent")+", content:"+requestJson);
 
-        if (!validateProcessId(requestJson.getProcessId()))
+        if (!isValidProcessId(requestJson.getProcessId()))
             throw new CredentialExpiredException("process_id expired!");
 
         if (!ValidationUtils.isEmail(requestJson.getEmail())) {
             throw new IllegalArgumentException("Incorrect email address!");
         }
 
-        String lang = "EN";
+        if (StringUtils.isBlank(lang)) lang = "EN";
+
         if (context.hasProperty("lang")) {
             lang = context.getProperty("lang")+"";
         }
@@ -72,7 +74,20 @@ public class RegisterResource {
         return service.saveRegistration(requestJson, lang);
     }
 
-    private synchronized boolean validateProcessId(String processId) {
+    @POST
+    @PermitAll
+    @Path("verify_otp")
+    public Uni<ResponseJson<RegisterResponseJson>> verifyOTP(
+            RegisterRequestJson requestJson,
+            @Context ContainerRequestContext context
+    ) throws Exception {
+        if (!isValidProcessId(requestJson.getProcessId()))
+            throw new CredentialExpiredException("process_id expired!");
+
+        return service.verifyOtp(requestJson.getOtpKey(), requestJson.getOtpCode());
+    }
+
+    private synchronized boolean isValidProcessId(String processId) {
         if (StringUtils.isBlank(processId)) return false;
 
         try {
@@ -81,7 +96,7 @@ public class RegisterResource {
                 KeyValueCacheUtils.saveCache(REGISTER_PROCESS_ID, processId, null, CacheUpdateMode.REMOVE);
             }
             Date date = DateTimeUtils.fromUtc(sExp);
-            return date != null && date.before(new Date());
+            return date != null && date.after(new Date());
         }catch (Exception e) {
             logger.warn(e.getMessage(), e);
             return false;

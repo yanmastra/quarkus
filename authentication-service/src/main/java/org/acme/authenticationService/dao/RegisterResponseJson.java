@@ -10,6 +10,11 @@ public class RegisterResponseJson {
     @JsonProperty("process_id")
     private String processId;
 
+    @JsonProperty("user_data")
+    private RegisterRequestJson userData;
+    @JsonProperty("temporary_access_token")
+    private String temporaryAccessToken;
+
     public RegisterResponseJson(String otpKey, String processId) {
         this.otpKey = otpKey;
         this.processId = processId;
@@ -32,5 +37,21 @@ public class RegisterResponseJson {
 
     public void setProcessId(String processId) {
         this.processId = processId;
+    }
+
+    public RegisterRequestJson getUserData() {
+        return userData;
+    }
+
+    public void setUserData(RegisterRequestJson userData) {
+        this.userData = userData;
+    }
+
+    public String getTemporaryAccessToken() {
+        return temporaryAccessToken;
+    }
+
+    public void setTemporaryAccessToken(String temporaryAccessToken) {
+        this.temporaryAccessToken = temporaryAccessToken;
     }
 }

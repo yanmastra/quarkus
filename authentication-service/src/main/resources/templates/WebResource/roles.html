@@ -227,6 +227,7 @@
                                             <table id="example1" class="table table-bordered table-striped">
                                                 <thead>
                                                 <tr>
+                                                    <th>ID</th>
                                                     <th>Code</th>
                                                     <th>Name</th>
                                                     <th>Application</th>
@@ -240,6 +241,12 @@
                                                 {#if data.data != null && data.data.size() > 0}
                                                 {#for item in data.data}
                                                 <tr>
+                                                    <td>
+                                                        <button type="button" class="btn btn-default btn-flat" onclick="copyToClipBoard('{item.id}', 'ID')">
+                                                            <i class="fas fa-copy"></i>
+                                                            Copy Id
+                                                        </button>
+                                                    </td>
                                                     <td>
                                                         <div class="input-group input-group-xs">
                                                             <input id="{item.getCode()}" value="{item.getCode()}" type="text" readonly class="form-control"/>

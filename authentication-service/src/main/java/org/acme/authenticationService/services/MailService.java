@@ -47,8 +47,8 @@ public class MailService {
     public static final Map<String, Map<String, String>> messageLists = Map.of(
             "ID", Map.of(
                     OTP_REG_MAIL_SUBJECT, "[Rahasia] Kode OTP %s untuk mendaftar sebagai %s",
-                    OTP_REG_MAIL_BEGINNING, "<p>Halo <strong>%s</strong></p><p>Anda telah mendaftar sebagai %s di aplikasi %s</p>",
-                    OTP_REG_MAIL_CONTENT, "<p>Masukan kode OTP berikut untuk verifikasi akun anda!</p><p><strong>%s</strong></p></br>" +
+                    OTP_REG_MAIL_BEGINNING, "<p>Halo <strong>%s</strong></p><p>Anda baru saja mendaftar sebagai %s di aplikasi %s</p>",
+                    OTP_REG_MAIL_CONTENT, "<p>Masukan kode OTP berikut untuk verifikasi akun anda!</p><p><strong><span class=\"code\">%s</span></strong></p></br>" +
                             "<p>Atau anda bisa klik link berikut jika ingin memverifikasinya lewat browser</p>" +
                             "<p><a href=\"%s\">Verifikasi</a></p>",
                     DFT_USER_PASSWORD_SUBJECT, "[Username dan Password] Anda telah didaftarkan sebagai %s di %s",
@@ -60,8 +60,8 @@ public class MailService {
             ),
             "EN", Map.of(
                     OTP_REG_MAIL_SUBJECT, "[Confidential] %s OTP code to register as %s",
-                    OTP_REG_MAIL_BEGINNING, "<p>Hello <strong>%s</strong></p><p>You've been registered as %s in %s</p>",
-                    OTP_REG_MAIL_CONTENT, "<p>Input this OTP code to verify your account!</p><p><strong>%s</strong></p></br>" +
+                    OTP_REG_MAIL_BEGINNING, "<p>Hello <strong>%s</strong></p><p>You've just registered as %s in %s</p>",
+                    OTP_REG_MAIL_CONTENT, "<p>Input this OTP code to verify your account!</p><p><strong><span class=\"code\">%s</span></strong></p></br>" +
                             "<p>Or you click link below if you want to verify it on browser</p>" +
                             "<p><a href=\"%s\">Verify</a></p>",
                     DFT_USER_PASSWORD_SUBJECT, "[Username and Password] You've been registered as %s in %s",
@@ -81,12 +81,31 @@ public class MailService {
                 .formatted(otpCode, "http://onknown-host.com");
         String subject = messageLists.get(lang).get(OTP_REG_MAIL_SUBJECT).formatted(appName, roleName);
 
-        return Templates.mailMessage(messageTemplateData)
-                        .to(userEmail).subject(subject)
-                        .from(mailerFrom).replyTo(mailerFrom)
-                .send();
-//        return Mail.withHtml(userEmail, subject,
-//                Templates.mailMessage(messageTemplateData).render());
+        String content = """
+                        <style type="text/css">
+                        p {
+                        font-family: arial, helvetica, sans-serif;
+                        font-size: 14px;
+                        }
+                        strong {
+                        font-weight: 900;
+                        font-size: 15px
+                        }
+                        
+                        .code {
+                        font-family: Monospace;
+                        font-size: 24px
+                        }
+                        </style>
+                        <center><img width="100" src="cid:mylogo@quarkus.io"/></center>
+                        <br/>
+                """ + messageTemplateData.beginningMessage +
+                messageTemplateData.contentMessage;
+
+        Mail mail = Mail.withHtml(userEmail, subject, content)
+                .setFrom(mailerFrom).addReplyTo(mailerFrom)
+                .addInlineAttachment("mylogo.png", new File(companyMainLogo), "image/png","<mylogo@quarkus.io>");
+        return mailer.send(mail);
     }
 
     public Uni<Void> createSignInfoEmail(String lang, String username, String password, String userName, String userEmail, String appName, String roleName) {
@@ -114,28 +133,12 @@ public class MailService {
                         }
                         </style>
                         <center><img width="100" src="cid:mylogo@quarkus.io"/></center>
+                        <br/>
                         """ +
                 messageTemplateData.beginningMessage +
                 messageTemplateData.contentMessage;
-        String subject = messageLists.get(lang).get(DFT_USER_PASSWORD_SUBJECT).formatted(roleName, appName)+" - "+ UUID.randomUUID();
+        String subject = messageLists.get(lang).get(DFT_USER_PASSWORD_SUBJECT).formatted(roleName, appName);
 
-//        Uni<String> uniContent = Templates.mailMessage(messageTemplateData)
-//                .data("data", messageTemplateData)
-//                .createUni();
-
-//        return uniContent.map(content -> {
-//            logger.info("email: "+content);
-//            return Mail.withHtml(userEmail, subject, content)
-//                    .setFrom(mailerFrom).addReplyTo(mailerFrom)
-//                    .addInlineAttachment("mylogo.png", new File(companyMainLogo), "image/png","<mylogo@quarkus.io>");
-//        });
-//        return Templates.mailMessage(messageTemplateData)
-//                .to(userEmail)
-//                .subject(subject)
-//                .from(mailerFrom)
-//                .replyTo(mailerFrom)
-//                .addInlineAttachment("mylogo.png", new File(companyMainLogo), "image/png","<mylogo@quarkus.io>")
-//                .send();
         Mail mail = Mail.withHtml(userEmail, subject, content)
                     .setFrom(mailerFrom).addReplyTo(mailerFrom)
                     .addInlineAttachment("mylogo.png", new File(companyMainLogo), "image/png","<mylogo@quarkus.io>");
