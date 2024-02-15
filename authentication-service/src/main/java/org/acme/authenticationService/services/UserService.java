@@ -2,7 +2,6 @@ package org.acme.authenticationService.services;
 
 import com.acme.authorization.json.ResponseJson;
 import com.acme.authorization.security.UserPrincipal;
-import com.acme.authorization.utils.JsonUtils;
 import com.acme.authorization.utils.PasswordGenerator;
 import io.quarkus.hibernate.reactive.panache.PanacheQuery;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
@@ -14,20 +13,19 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
-import org.acme.authenticationService.dao.*;
-import org.acme.authenticationService.dao.web.BaseModel;
-import org.acme.authenticationService.dao.web.UserPageModel;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import org.acme.authenticationService.dao.ApplicationJson;
+import org.acme.authenticationService.dao.UpdatePasswordRequest;
+import org.acme.authenticationService.dao.UserOnly;
+import org.acme.authenticationService.dao.UserWithPermission;
 import org.acme.authenticationService.data.entity.*;
-import org.acme.authenticationService.data.entity.Role;
 import org.acme.authenticationService.data.repository.*;
-import org.acme.authenticationService.resources.web.WebUtils;
+import org.acme.authenticationService.firebase.FirebaseAuthClient;
+import org.acme.authenticationService.firebase.FirebaseAuthRequest;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.jboss.logging.Logger;
 
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class UserService {
@@ -45,47 +43,62 @@ public class UserService {
     UserAppRepository userAppRepository;
     @Inject
     AdditionalUserDataRepository additionalUserDataRepo;
+    @Inject FirebaseAuthClient firebaseAuthClient;
 
 
     @Inject
     Logger logger;
 
+    /**
+     * to create user from API endpoint
+     * @param user
+     * @param context
+     * @return
+     */
     @WithTransaction
-    public Uni<ResponseJson<Map<String, Object>>> saveUser(UserOnly user, UserPrincipal principal) {
+    public Uni<ResponseJson<UserOnly>> saveUser(UserOnly user, ContainerRequestContext context) {
+        UserPrincipal principal = UserPrincipal.valueOf(context);
+
+        user.setCreatedBy(principal.getName());
         AuthUser authUser = user.toDto();
         authUser.setCreatedBy(principal.getName());
+        String password = PasswordGenerator.generatePassword(8, false);
+        authUser.setPasswordTextPlain(password);
 
         Optional<Map.Entry<String, List<String>>> first = user.getRolesIds().entrySet().stream().findFirst();
         if (first.isEmpty() || first.get().getValue().isEmpty()) throw new IllegalArgumentException("Please specify Role and Application Code!");
         String appCode = first.get().getKey();
         String roleCode = first.get().getValue().get(0);
         return appRepo.findById(appCode)
-                .chain(app -> roleRepo.findById(appCode, roleCode).chain(role -> saveUser(authUser, app, role)
-                        .onItem().transform(UserOnly::fromDto)
-                        .map(saved -> {
-                            String secretKey = app.getSecretKey();
-                            String tokenId = UUID.randomUUID().toString();
-                            principal.getUser().setId(saved.getId());
-                            principal.getUser().setUsername(saved.getUsername());
-                            principal.getUser().setEmail(saved.getEmail());
+                .chain(app -> {
+                    if (app.getUsingFirebase()) {
+                        return firebaseAuthClient.signUp(new FirebaseAuthRequest(authUser.getEmail(), password))
+                                .onFailure().invoke(throwable -> logger.error(throwable.getMessage(), throwable))
+                                .chain(firebaseResponse -> {
+                                    app.addAdditionalUserDataField(FirebaseAuthClient.FIREBASE_VERIFIED);
+                                    app.addAdditionalUserDataField(FirebaseAuthClient.FIREBASE_LOCAL_ID);
 
-                            String temporaryToken = TokenUtils.createAccessToken(
-                                    appCode,
-                                    JsonUtils.toJson(principal.getUser()),
-                                    principal.getUser().getUsername(),
-                                    tokenId,
-                                    DateUtils.addMinutes(new Date(), 15),
-                                    Set.of("CHANGE_OWN_PASSWORD"),
-                                    secretKey
-                            );
-                            TokenUtils.saveSession(tokenId, appCode, secretKey, "");
-                            return new ResponseJson<>(
-                                    true,
-                                    "",
-                                    Map.of("access_token", temporaryToken,
-                                            "data", saved)
-                            );
-                        })));
+                                    AdditionalUserData firebaseVerified = new AdditionalUserData(null, authUser, appCode, FirebaseAuthClient.FIREBASE_VERIFIED, "UNVERIFIED");
+                                    AdditionalUserData firebaseLocalId = new AdditionalUserData(null, authUser, appCode, FirebaseAuthClient.FIREBASE_LOCAL_ID, firebaseResponse.getLocalId());
+
+                                    authUser.getAdditionalUserData().add(firebaseVerified);
+                                    authUser.getAdditionalUserData().add(firebaseLocalId);
+                                    return saveUserResponse(app, authUser, roleCode);
+                                });
+                    } else {
+                        return saveUserResponse(app, authUser, roleCode);
+                    }
+                });
+    }
+
+    private Uni<ResponseJson<UserOnly>> saveUserResponse(Application app, AuthUser authUser, String roleCode) {
+        return roleRepo.findById(app.getCode(), roleCode).chain(role -> saveUser(authUser, app, role)
+                .onItem().transform(UserOnly::fromDto)
+                .map(saved -> new ResponseJson<>(
+                        true,
+                        "",
+                        saved
+                )));
     }
 
     @WithTransaction
@@ -195,6 +208,13 @@ public class UserService {
         });
     }
 
+    /**
+     * saving complete user data that included hashed password
+     * @param authUser
+     * @param app
+     * @param role
+     * @return
+     */
     private Uni<AuthUser> saveUser(AuthUser authUser, Application app, Role role) {
         return Uni.createFrom().item(authUser)
                 .chain(roBePersisted -> userRepository.persist(roBePersisted))
@@ -235,8 +255,15 @@ public class UserService {
                 });
     }
 
+    /**
+     * to create new user from Web Page
+     * @param userOnly
+     * @param appCode
+     * @param roleCode
+     * @param principal
+     * @return
+     */
     public Uni<?> createNewUser(UserOnly userOnly, String appCode, String roleCode, UserPrincipal principal) {
-
         return appRepo.findById(appCode)
                 .chain(app -> roleRepo.findById(app.getCode(), roleCode).chain(role -> {
 
@@ -273,16 +300,29 @@ public class UserService {
 
         logger.info("principal:"+principal);
 
-        return userRepository.find("where id=?1", principal.getUser().getId())
-                .firstResult()
-                .onFailure().invoke(throwable -> {
-                    logger.error("On finding:"+throwable.getMessage(), throwable);
-                })
-                .chain(result -> {
-                    result.setPasswordTextPlain(request.getPassword());
-                    result.setVerified(true);
-                    return userRepository.persist(result);
-                })
+        return appRepo.findById(principal.getAppCode())
+                .chain(app -> userRepository.find("where id=?1", principal.getUser().getId())
+                        .firstResult()
+                        .onFailure().invoke(throwable -> {
+                            logger.error("On finding:" + throwable.getMessage(), throwable);
+                        })
+                        .chain(result -> {
+                            if (app.getUsingFirebase()) {
+                                FirebaseAuthRequest updatePassRequest = new FirebaseAuthRequest();
+                                updatePassRequest.setPassword(request.getPassword());
+                                updatePassRequest.setIdToken();
+                                return firebaseAuthClient.updateProfile(updatePassRequest)
+                                        .chain(res -> {
+                                            result.setPasswordTextPlain(request.getPassword());
+                                            result.setVerified(true);
+                                            return userRepository.persist(result);
+                                        });
+                            } else {
+                                result.setPasswordTextPlain(request.getPassword());
+                                result.setVerified(true);
+                                return userRepository.persist(result);
+                            }
+                        }))
                 .chain(result -> userRoleRepository.find("where authUser.id=?1", result.getId())
                         .list()
                         .map(userRoles -> {

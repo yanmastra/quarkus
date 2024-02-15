@@ -8,12 +8,12 @@ import com.acme.authorization.utils.KeyValueCacheUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
-import io.quarkus.mailer.reactive.ReactiveMailer;
 import io.smallrye.mutiny.Uni;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.container.ContainerRequestContext;
 import org.acme.authenticationService.dao.RegisterRequestJson;
 import org.acme.authenticationService.dao.RegisterResponseJson;
 import org.acme.authenticationService.dao.UserOnly;
@@ -67,7 +67,6 @@ public class RegisterService {
                                             if (role == null)
                                                 throw new NotFoundException("Role with code:" + requestJson.getRoleCode() + " in application:" + app.getCode() + " not found!");
 
-
                                             String otpCode = getOtpCode();
                                             String otpKey = UUID.randomUUID().toString();
 
@@ -84,6 +83,7 @@ public class RegisterService {
                                             logger.error(keyOtpData+" --> "+valOtpData+" --> "+KeyValueCacheUtils.showHiddenString(valOtpData));
 
                                             saveOtpSession(keyOtpData, valOtpData, otpKey, regData);
+
                                             return mailService.createRegisterEmail(lang, otpCode, requestJson.getName(), requestJson.getEmail(), app.getName(), role.getName())
                                                     .map(r -> regData);
                                         });
@@ -108,12 +108,12 @@ public class RegisterService {
     }
 
     @WithTransaction
-    public Uni<ResponseJson<RegisterResponseJson>> verifyOtp(String otpKey, String otpCode) {
+    public Uni<ResponseJson<RegisterResponseJson>> verifyOtp(String otpKey, String otpCode, ContainerRequestContext context) {
         if (StringUtils.isBlank(otpKey) || StringUtils.isBlank(otpCode))
             throw new IllegalArgumentException("Please send the correct OTP Key and OTP Code!");
 
         String sExpOtp = KeyValueCacheUtils.findCache(REGISTER_OTP_EXP, otpKey);
-        if (StringUtils.isBlank(sExpOtp) || DateTimeUtils.fromUtc(sExpOtp).before(new Date()))
+        if (StringUtils.isBlank(sExpOtp) || (new Date()).after(DateTimeUtils.fromUtc(sExpOtp)))
             throw new SecurityException("OTP Expired!");
 
         String hiddenRegData = KeyValueCacheUtils.findCache(REGISTER_USER_DATA, KeyValueCacheUtils.hide(otpKey));
@@ -132,9 +132,10 @@ public class RegisterService {
                     .map(app -> {
                         String tokenId = UUID.randomUUID().toString();
                         String secretKey = app.getSecretKey();
-                        Set<String> permission = Set.of("CREATE_USER");
+                        Set<String> permission = Set.of("CREATE_OWN_USER", "CHANGE_OWN_PASSWORD");
 
-                        String temporaryToken = TokenUtils.createAccessToken(requestJson.getApplicationCode(), JsonUtils.toJson(userOnly), userOnly.getUsername(), tokenId, DateUtils.addMinutes(new Date(), 30), permission, secretKey);
+                        String issuer = TokenUtils.getIssuer(context);
+                        String temporaryToken = TokenUtils.createAccessToken(issuer, requestJson.getApplicationCode(), JsonUtils.toJson(userOnly), DateUtils.addMinutes(new Date(), 30), permission, secretKey);
                         TokenUtils.saveSession(tokenId, app.getCode(), secretKey, "");
 
                         ResponseJson<RegisterResponseJson> responseJson = new ResponseJson<>(true, null);

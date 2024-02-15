@@ -40,13 +40,13 @@ public class TestWithRunner {
                 String secretKey = PasswordGenerator.generatePassword(32, true);
                 String refreshKey = PasswordGenerator.generatePassword(32, true);
 
-                String accessToken = TokenUtils.createAccessToken(appCode, subject, username, issuer, expiredAt, permissions, secretKey);
-                String refreshToken = TokenUtils.createRefreshToken(appCode, subject, username, issuer, expiredAt, permissions, refreshKey);
+                String accessToken = TokenUtils.createAccessToken("http://localhost/", appCode, subject, expiredAt, permissions, secretKey);
+                String refreshToken = TokenUtils.createRefreshToken("http://localhost/", subject, issuer, expiredAt, permissions, refreshKey);
                 TokenUtils.saveSession(issuer, appCode, secretKey, refreshKey);
 
                 UserPrincipal principal = TokenUtils.verifyAccessToken(accessToken, parser, objectMapper);
                 Thread.sleep(200);
-                AuthenticationResponse newAuth = TokenUtils.createAccessToken(refreshToken, parser, objectMapper);
+                AuthenticationResponse newAuth = TokenUtils.createAccessToken("http://localhost/", refreshToken, parser, objectMapper);
 
                 logger.info("result: " + principal);
                 logger.info("result: " + newAuth);

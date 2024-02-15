@@ -9,3 +9,5 @@
 **/production/**
 **.mysql
 ./docker
+authentication-service/src/main/resources/privatekey.pem
+authentication-service/src/main/resources/publickey.pub

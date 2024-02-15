@@ -8,4 +8,5 @@ public interface Constants {
     String COOKIE_MESSAGES_SUCCESS = "COOKIE_MESSAGES_SUCCESS";
     String REGEX_SPECIAL_CHARACTER="[$&+,:;=\\\\?@#|/'<>.^*()%!-]";
     String REGEX_ANY_SPACE="\\s+";
+    String KEY_CLIENT_ID = "client_id";
 }

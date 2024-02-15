@@ -31,30 +31,30 @@ public class AuthenticationResource {
     @POST
     @Path("authenticate_json")
     @Consumes({MediaType.APPLICATION_JSON})
-    public Uni<ResponseJson<AuthenticationResponse<UserOnly>>> authenticate(SignInCredential credential) {
+    public Uni<ResponseJson<AuthenticationResponse<UserOnly>>> authenticate(SignInCredential credential, @Context ContainerRequestContext context) {
         if (StringUtil.isNullOrEmpty(credential.getUsername()) || StringUtil.isNullOrEmpty(credential.getPassword()) || StringUtil.isNullOrEmpty(credential.getAppCode())) {
             throw new IllegalArgumentException("Incorrect credential, you should fill in the username, password, and appCode with the correct values!, yours:"+credential);
         }
-        return authenticationService.authenticate(credential).map(response -> new ResponseJson<>(true, null, response));
+        return authenticationService.authenticate(credential, context).map(response -> new ResponseJson<>(true, null, response));
     }
 
     @PermitAll
     @POST
     @Path("authenticate")
     @Consumes({MediaType.APPLICATION_FORM_URLENCODED})
-    public Uni<ResponseJson<AuthenticationResponse<UserOnly>>> authenticate(SignInCredentialWeb credential) {
+    public Uni<ResponseJson<AuthenticationResponse<UserOnly>>> authenticate(SignInCredentialWeb credential, @Context ContainerRequestContext context) {
         if (StringUtil.isNullOrEmpty(credential.getUsername()) || StringUtil.isNullOrEmpty(credential.getPassword()) || StringUtil.isNullOrEmpty(credential.getAppCode())) {
             throw new IllegalArgumentException("Incorrect credential, you should fill in the username, password, and appCode with the correct values!, yours:"+credential);
         }
-        return authenticationService.authenticate(credential).map(response -> new ResponseJson<>(true, null, response));
+        return authenticationService.authenticate(credential, context).map(response -> new ResponseJson<>(true, null, response));
     }
 
     @PermitAll
     @GET
     @Path("authenticate")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Uni<ResponseJson<AuthenticationResponse<UserOnly>>> refreshToken(@HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
-        return authenticationService.refreshToken(auth).map(r -> new ResponseJson<>(true, null, r));
+    public Uni<ResponseJson<AuthenticationResponse<UserOnly>>> refreshToken(@HeaderParam(HttpHeaders.AUTHORIZATION) String auth, @Context ContainerRequestContext context) {
+        return authenticationService.refreshToken(auth, context).map(r -> new ResponseJson<>(true, null, r));
     }
 
     @PermitAll

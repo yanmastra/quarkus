@@ -43,3 +43,5 @@ nb-configuration.xml
 /.quarkus/cli/plugins/
 **/docker_env.sh
 **/.mvn
+src/main/resources/privatekey.pem
+src/main/resources/publickey.pub

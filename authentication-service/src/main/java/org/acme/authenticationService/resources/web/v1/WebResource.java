@@ -128,7 +128,7 @@ public class WebResource {
         exp = DateUtils.setMilliseconds(exp, 0);
         credential.setExpToken(exp);
 
-        return authService.authenticate(credential).onItem().transform(r -> WebUtils.createOkResponse(
+        return authService.authenticate(credential, context).onItem().transform(r -> WebUtils.createOkResponse(
                 Collections.singletonMap(HttpHeaders.AUTHORIZATION, r.accessToken),
                 Templates.login(new Login(null, null, true, null))
         ).build()).onFailure().recoverWithItem(e -> {

@@ -84,7 +84,7 @@ public class RegisterResource {
         if (!isValidProcessId(requestJson.getProcessId()))
             throw new CredentialExpiredException("process_id expired!");
 
-        return service.verifyOtp(requestJson.getOtpKey(), requestJson.getOtpCode());
+        return service.verifyOtp(requestJson.getOtpKey(), requestJson.getOtpCode(), context);
     }
 
     private synchronized boolean isValidProcessId(String processId) {

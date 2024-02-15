@@ -57,6 +57,11 @@ public class Application extends PanacheEntityBase implements Serializable {
     @Column(name = "adds_user_data_fields")
     private String additionalUserDataFields;
 
+    @Column(name = "use_firebase")
+    private Boolean isUsingFirebase;
+    @Column(name = "firebase_api_key")
+    private String firebaseApiKey;
+
     @PrePersist
     public void generateSecretKey() {
         if (StringUtils.isBlank(secretKey))
@@ -207,6 +212,22 @@ public class Application extends PanacheEntityBase implements Serializable {
         }
         fields.add(field);
         additionalUserDataFields = String.join(",", fields);
+    }
+
+    public Boolean getUsingFirebase() {
+        return isUsingFirebase;
+    }
+
+    public void setUsingFirebase(Boolean usingFirebase) {
+        isUsingFirebase = usingFirebase;
+    }
+
+    public String getFirebaseApiKey() {
+        return firebaseApiKey;
+    }
+
+    public void setFirebaseApiKey(String firebaseApiKey) {
+        this.firebaseApiKey = firebaseApiKey;
     }
 
     @Override

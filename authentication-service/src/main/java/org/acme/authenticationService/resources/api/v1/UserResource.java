@@ -10,6 +10,7 @@ import io.vertx.ext.web.handler.HttpException;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -18,9 +19,6 @@ import org.acme.authenticationService.dao.UpdatePasswordRequest;
 import org.acme.authenticationService.dao.UserOnly;
 import org.acme.authenticationService.services.UserService;
 import org.jboss.logging.Logger;
-
-import java.util.List;
-import java.util.Map;
 
 @Path("/api/v1/user")
 @Produces(MediaType.APPLICATION_JSON)
@@ -32,17 +30,15 @@ public class UserResource {
     @Inject
     Logger logger;
 
-    @RolesAllowed({"CREATE_USER"})
+    @RolesAllowed({"CREATE_USER", "CREATE_OWN_USER"})
     @POST
-    public Uni<Response> create(UserOnly user, @Context SecurityContext context) {
+    public Uni<Response> create(UserOnly user, @Context ContainerRequestContext context) {
         if (!ValidationUtils.isEmail(user.getEmail())) {
             throw new HttpException(HttpResponseStatus.BAD_REQUEST.code(), "Incorrect email format");
         }
 
         try {
-            UserPrincipal principal = UserPrincipal.valueOf(context);
-            user.setCreatedBy(principal.getName());
-            return userService.saveUser(user, principal)
+            return userService.saveUser(user, context)
                     .onItem().transform(r -> Response.status(Response.Status.OK).entity(r).build())
                     .onFailure().transform(throwable -> {
                         logger.error(throwable.getMessage(), throwable);
@@ -122,6 +118,7 @@ public class UserResource {
     }
 
     @POST
+    @RolesAllowed("CHANGE_OWN_PASSWORD")
     @Path("update_password")
     public Uni<Response> updatePassword(UpdatePasswordRequest request, @Context SecurityContext context) {
         return userService.updatePassword(request, UserPrincipal.valueOf(context))
