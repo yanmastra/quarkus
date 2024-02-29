@@ -1,17 +1,13 @@
 package org.acme.authenticationService.firebase;
 
 
-import io.quarkus.rest.client.reactive.ClientQueryParam;
 import io.smallrye.mutiny.Uni;
-import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import org.jboss.resteasy.reactive.RestQuery;
 
-@RegisterRestClient
-@ClientQueryParam(name = "key", value = "${firebase.api_key}")
-@Consumes(MediaType.APPLICATION_JSON)
+@RegisterRestClient(baseUri = "https://identitytoolkit.googleapis.com")
 public interface FirebaseAuthClient {
 
     String FIREBASE_VERIFIED = "FIREBASE_VERIFIED";
@@ -19,13 +15,13 @@ public interface FirebaseAuthClient {
 
     @POST
     @Path("/v1/accounts:signUp")
-    Uni<FirebaseAuthResponse> signUp(FirebaseAuthRequest request);
+    Uni<FirebaseAuthResponse> signUp(FirebaseAuthRequest request, @RestQuery("key") String apiKey);
     @POST
     @Path("/v1/accounts:signInWithPassword")
-    Uni<FirebaseAuthResponse> signIn(FirebaseAuthRequest request);
+    Uni<FirebaseAuthResponse> signIn(FirebaseAuthRequest request, @RestQuery("key") String apiKey);
 
     @POST
     @Path("/v1/accounts:update")
-    Uni<FirebaseAuthResponse> updateProfile(FirebaseAuthRequest request);
+    Uni<FirebaseAuthResponse> updateProfile(FirebaseAuthRequest request, @RestQuery("key") String apiKey);
 
 }

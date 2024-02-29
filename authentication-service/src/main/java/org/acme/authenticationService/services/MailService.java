@@ -12,7 +12,6 @@ import org.jboss.logging.Logger;
 
 import java.io.File;
 import java.util.Map;
-import java.util.UUID;
 
 @ApplicationScoped
 public class MailService {

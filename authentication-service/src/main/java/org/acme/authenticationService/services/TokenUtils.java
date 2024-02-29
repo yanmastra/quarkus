@@ -10,34 +10,48 @@ import io.quarkus.runtime.util.StringUtil;
 import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import io.smallrye.jwt.build.Jwt;
+import io.smallrye.jwt.build.JwtClaimsBuilder;
 import io.smallrye.jwt.util.KeyUtils;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.ws.rs.container.ContainerRequestContext;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.jwt.Claims;
 import org.eclipse.microprofile.jwt.JsonWebToken;
+import org.jboss.logging.Logger;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Optional;
 import java.util.Set;
 
 public class TokenUtils {
+    private static final Logger log = Logger.getLogger(TokenUtils.class);
+
     static String createAccessToken(String appCode, String subject, Date expiredAt, Set<String> permissions, String secretKey){
         String hostPort = "http://localhost:" + ConfigProvider.getConfig().getValue("quarkus.http.port", String.class)+"/api/v1/auth";
         return createAccessToken(hostPort, appCode, subject, expiredAt, permissions, secretKey);
     }
 
-    static String createAccessToken(String issuer, String appCode, String subject, Date expiredAt, Set<String> permissions, String secretKey) {
+    static String createAccessToken(String issuer, String appCode, String subject, Date expiredAt, Set<String> permissions, String secretKey){
+        return createAccessToken(issuer, appCode, subject, null, expiredAt, permissions, secretKey);
+    }
+
+    static String createAccessToken(String issuer, String appCode, String subject, String firebaseToken, Date expiredAt, Set<String> permissions, String secretKey) {
         long expired = Instant.ofEpochMilli(expiredAt.getTime()).getEpochSecond();
         long issuedAt = Instant.now().getEpochSecond();
 
-        String jwe = Jwt.subject(subject)
+        JwtClaimsBuilder jcb = Jwt.subject(subject)
                 .expiresAt(expired)
                 .groups(permissions)
-                .audience("access_token")
-                .jwe().encryptWithSecret(secretKey);
+                .audience("access_token");
+
+        if (StringUtils.isNotBlank(firebaseToken)) {
+                jcb.claim(Constants.FIREBASE_TOKEN, firebaseToken);
+        }
+        String jwe = jcb.jwe().encryptWithSecret(secretKey);
         return Jwt.subject(jwe)
                 .expiresAt(expired)
                 .claim(Constants.KEY_CLIENT_ID, appCode)
@@ -52,14 +66,23 @@ public class TokenUtils {
     }
 
     static String createRefreshToken(String issuer, String subject, String tokenId, Date expiredAt, Set<String> permissions, String secretKey) {
+        return createRefreshToken(issuer, subject, null, tokenId, expiredAt, permissions, secretKey);
+    }
+
+    static String createRefreshToken(String issuer, String subject, String firebaseRefreshToken, String tokenId, Date expiredAt, Set<String> permissions, String secretKey) {
         long expired = Instant.ofEpochMilli(expiredAt.getTime()).getEpochSecond();
         long issuedAt = Instant.now().getEpochSecond();
 
-        String jwe = Jwt.subject(subject)
+        JwtClaimsBuilder jcb = Jwt.subject(subject)
                 .expiresAt(expired)
                 .groups(permissions)
-                .audience("refresh_token")
-                .jwe().encryptWithSecret(secretKey);
+                .audience("refresh_token");
+
+        if (StringUtils.isNotBlank(firebaseRefreshToken)) {
+            jcb.claim(Constants.FIREBASE_REFRESH_TOKEN, firebaseRefreshToken);
+        }
+
+        String jwe = jcb.jwe().encryptWithSecret(secretKey);
         return Jwt.subject(jwe)
                 .expiresAt(expired)
                 .claim(Constants.KEY_CLIENT_ID, tokenId)
@@ -80,8 +103,10 @@ public class TokenUtils {
 
         String subject = jsonWebToken.getSubject();
         UserOnly data = objectMapper.readValue(subject, UserOnly.class);
+        Optional<String> firebaseToken = jsonWebToken.claim(Constants.FIREBASE_TOKEN);
 
-        return new UserPrincipal(data, jsonWebToken.getGroups().stream().toList(), appCode, accessToken);
+        return firebaseToken.map(s -> new UserPrincipal(data, jsonWebToken.getGroups().stream().toList(), appCode, accessToken, s))
+                .orElseGet(() -> new UserPrincipal(data, jsonWebToken.getGroups().stream().toList(), appCode, accessToken));
     }
 
     static AuthenticationResponse<org.acme.authenticationService.dao.UserOnly> createAccessToken(String issuer, String refreshToken, JWTParser parser, ObjectMapper objectMapper) throws ParseException, IOException, GeneralSecurityException {
@@ -132,7 +157,7 @@ public class TokenUtils {
     static void saveSession(String tokenId, String appCode, String appSecretKey, String refreshKey) {
         KeyValueCacheUtils.saveCache(tokenId, AuthenticationService.SESSION+"_APP", appCode, CacheUpdateMode.ADD);
         KeyValueCacheUtils.saveCache(tokenId, AuthenticationService.SESSION+"_REF", refreshKey, CacheUpdateMode.ADD);
-        KeyValueCacheUtils.saveCache(AuthenticationService.APPLICATION, appCode+"_SEC", appSecretKey, CacheUpdateMode.ADD);
+        KeyValueCacheUtils.saveCache(AuthenticationService.APPLICATION, appCode+"_SEC", appSecretKey, CacheUpdateMode.REPLACE);
     }
 
     static String getIssuer(ContainerRequestContext context) {

@@ -22,7 +22,6 @@ fi
 cd $DIR || exit
 
 export DEBUG=15005
-export QUARKUS_LOG_LEVEL=INFO
 export QUARKUS_HIBERNATE_ORM_DATABASE_GENERATION=update
 export AUTHORIZATION_DEFAULT_REDIRECT="/web/v1/auth"
 export AUTHORIZATION_PUBLIC_PATH="/api/v1/auth/*,/web/v1/auth,/web/v1/auth/*,/api/v1/register,/favicon.ico,/"

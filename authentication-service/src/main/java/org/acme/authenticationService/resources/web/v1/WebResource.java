@@ -9,6 +9,7 @@ import com.acme.authorization.utils.KeyValueCacheUtils;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import io.smallrye.mutiny.Uni;
+import io.vertx.ext.web.handler.HttpException;
 import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
@@ -197,6 +198,7 @@ public class WebResource {
                 })
                 .onFailure()
                 .recoverWithItem(throwable -> {
+                    logger.error(throwable.getMessage(), throwable);
                     Map<String, String> messages = new HashMap<>();
                     messages.put(Constants.COOKIE_MESSAGES, "Failed to create application due to error: "+throwable.getMessage());
                     messages.put(Constants.COOKIE_MESSAGES_SUCCESS, false+"");
@@ -381,8 +383,13 @@ public class WebResource {
                 })
                 .onFailure()
                 .recoverWithItem(throwable -> {
+                    logger.error(throwable.getMessage(), throwable);
                     Map<String, String> messages = new HashMap<>();
-                    messages.put(Constants.COOKIE_MESSAGES, "Failed to create user due to error: "+throwable.getMessage());
+                    String msg = throwable.getMessage();
+                    if (throwable instanceof HttpException httpException) {
+                        msg = httpException.getPayload();
+                    }
+                    messages.put(Constants.COOKIE_MESSAGES, "Failed to create user due to error: "+msg);
                     messages.put(Constants.COOKIE_MESSAGES_SUCCESS, false+"");
                     return WebUtils.createRedirectResponse(messages, "/web/v1/users/form").build();
                 });
@@ -393,7 +400,7 @@ public class WebResource {
 
     @GET
     @Path("roles")
-    @RolesAllowed({"VIEW_ALL"})
+    @RolesAllowed({"VIEW_ALL", "VIEW_ROLE"})
     public Uni<Response> roles(
             @QueryParam("search") String search,
             @QueryParam("page") Integer page,
@@ -426,7 +433,7 @@ public class WebResource {
 
     @GET
     @Path("roles/form")
-    @RolesAllowed({"CREATE_ROLE"})
+    @RolesAllowed({"VIEW_ALL", "VIEW_ROLE"})
     public Uni<Response> roleForm(
             @Context ContainerRequestContext context
     ) {
@@ -489,7 +496,7 @@ public class WebResource {
 
     @GET
     @Path("roles/{id}/add_permission")
-    @RolesAllowed({"CREATE_ROLE"})
+    @RolesAllowed({"VIEW_ALL", "VIEW_PERMISSION"})
     public Uni<Response> formRoleAddPermission(@PathParam("id") String roleId, @Context ContainerRequestContext context) {
         UserPrincipal principal = UserPrincipal.valueOf(context);
         RoleFormAddPermissionModel model = WebUtils.createModel(new RoleFormAddPermissionModel(principal.getUser(), principal.getAppCode()), principal.getAppCode());
@@ -519,7 +526,7 @@ public class WebResource {
 
     @GET
     @Path("permissions")
-    @RolesAllowed({"VIEW_PERMISSION"})
+    @RolesAllowed({"VIEW_ALL", "VIEW_PERMISSION"})
     public Uni<Response> getPermissions(
             @QueryParam("search") String search,
             @QueryParam("page") Integer page,

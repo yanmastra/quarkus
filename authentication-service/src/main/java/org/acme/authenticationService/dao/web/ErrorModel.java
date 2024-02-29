@@ -4,6 +4,7 @@ public class ErrorModel extends BaseModel{
     public int status;
     public String msg1;
     public String redirect;
+    public String appName;
 
     public ErrorModel() {
     }

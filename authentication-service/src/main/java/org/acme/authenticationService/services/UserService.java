@@ -2,7 +2,9 @@ package org.acme.authenticationService.services;
 
 import com.acme.authorization.json.ResponseJson;
 import com.acme.authorization.security.UserPrincipal;
+import com.acme.authorization.utils.JsonUtils;
 import com.acme.authorization.utils.PasswordGenerator;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.hibernate.reactive.panache.PanacheQuery;
 import io.quarkus.hibernate.reactive.panache.common.WithTransaction;
 import io.quarkus.panache.common.Page;
@@ -10,6 +12,7 @@ import io.quarkus.panache.common.Parameters;
 import io.quarkus.panache.common.Sort;
 import io.quarkus.runtime.util.StringUtil;
 import io.smallrye.mutiny.Uni;
+import io.vertx.ext.web.handler.HttpException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
@@ -22,8 +25,11 @@ import org.acme.authenticationService.data.entity.*;
 import org.acme.authenticationService.data.repository.*;
 import org.acme.authenticationService.firebase.FirebaseAuthClient;
 import org.acme.authenticationService.firebase.FirebaseAuthRequest;
+import org.acme.authenticationService.firebase.FirebaseAuthResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
+import org.jboss.resteasy.reactive.ClientWebApplicationException;
 
 import java.util.*;
 
@@ -43,8 +49,8 @@ public class UserService {
     UserAppRepository userAppRepository;
     @Inject
     AdditionalUserDataRepository additionalUserDataRepo;
-    @Inject FirebaseAuthClient firebaseAuthClient;
-
+    @RestClient
+    FirebaseAuthClient firebaseAuthClient;
 
     @Inject
     Logger logger;
@@ -72,7 +78,7 @@ public class UserService {
         return appRepo.findById(appCode)
                 .chain(app -> {
                     if (app.getUsingFirebase()) {
-                        return firebaseAuthClient.signUp(new FirebaseAuthRequest(authUser.getEmail(), password))
+                        return firebaseSignUp(authUser.getEmail(), password, app.getFirebaseApiKey())
                                 .onFailure().invoke(throwable -> logger.error(throwable.getMessage(), throwable))
                                 .chain(firebaseResponse -> {
                                     app.addAdditionalUserDataField(FirebaseAuthClient.FIREBASE_VERIFIED);
@@ -89,6 +95,11 @@ public class UserService {
                         return saveUserResponse(app, authUser, roleCode);
                     }
                 });
+    }
+
+    private Uni<FirebaseAuthResponse> firebaseSignUp(String email, String password, String apiKey) {
+        return firebaseAuthClient.signUp(new FirebaseAuthRequest(email, password), apiKey)
+                .onFailure().invoke(throwable -> logger.error(throwable.getMessage(), throwable));
     }
 
     private Uni<ResponseJson<UserOnly>> saveUserResponse(Application app, AuthUser authUser, String roleCode) {
@@ -216,13 +227,23 @@ public class UserService {
      * @return
      */
     private Uni<AuthUser> saveUser(AuthUser authUser, Application app, Role role) {
-        return Uni.createFrom().item(authUser)
-                .chain(roBePersisted -> userRepository.persist(roBePersisted))
-                .onFailure()
-                .invoke(throwable -> logger.error("Persisting user:"+throwable.getMessage(), throwable))
-                .chain(saved -> {
-                    if (StringUtils.isBlank(app.getAdditionalUserDataFields())) return Uni.createFrom().item(saved);
+        if (app == null) throw new HttpException(HttpResponseStatus.NOT_FOUND.code(), "Application not found!");
+        if (role == null) throw new HttpException(HttpResponseStatus.NOT_FOUND.code(), "Role not found!");
 
+        return userRepository.find("where username=:username or email=:email", Map.of(
+                "username", authUser.getUsername(),
+                "email", authUser.getEmail()
+                ))
+                .firstResult()
+                .map(existed -> {
+                    if (existed != null) throw new HttpException(HttpResponseStatus.CONFLICT.code(), "User with same email or username already exists!");
+                    return authUser;
+                })
+                .chain(roBePersisted -> userRepository.persist(roBePersisted).onFailure().invoke(throwable -> {
+                            logger.error("Persisting user:"+throwable.getMessage(), throwable);
+                            throw new RuntimeException(throwable.getMessage(), throwable);
+                }).chain(saved -> {
+                    if (StringUtils.isBlank(app.getAdditionalUserDataFields())) return Uni.createFrom().item(saved);
                     ApplicationJson appJson = ApplicationJson.fromDto(app);
 
                     Uni<?> uniAdditions = Uni.createFrom().nullItem();
@@ -233,12 +254,14 @@ public class UserService {
                             addUserData = new AdditionalUserData(null, saved, app.getCode(), field, null);
                         }
                         final AdditionalUserData fAddUserData = addUserData;
-                        uniAdditions = uniAdditions.chain(r -> additionalUserDataRepo.persist(fAddUserData))
-                                .map(saved.getAdditionalUserData()::add);
+                        uniAdditions = uniAdditions.chain(r -> additionalUserDataRepo.persist(fAddUserData).onFailure()
+                                .invoke(throwable -> {
+                                    logger.error("Persisting additional-data:"+throwable.getMessage(), throwable);
+                                    throw new RuntimeException(throwable.getMessage(), throwable);
+                                })
+                                .map(saved.getAdditionalUserData()::add));
                     }
-                    return uniAdditions.map(r -> saved)
-                            .onFailure()
-                            .invoke(throwable -> logger.error("Persisting additional-data:"+throwable.getMessage(), throwable));
+                    return uniAdditions.map(r -> saved);
                 })
                 .chain(saved -> {
                     logger.info("saved user:"+saved+", role:"+role);
@@ -252,7 +275,7 @@ public class UserService {
                     logger.info("saved userRole:"+saved.getRoles()+", app:"+app);
                     return userAppRepository.persist(new UserApp(saved, app))
                             .map(r -> saved);
-                });
+                }));
     }
 
     /**
@@ -273,20 +296,32 @@ public class UserService {
                     authUser.setCreatedBy(principal.getName());
                     authUser.setVerified(true);
 
-                    return saveUser(authUser, app, role)
-                            .map(r -> Map.of("appName", app.getName(), "roleName", role.getName()))
-                            .onItem().call(r -> {
-                                logger.info("sending email to:"+authUser.getEmail());
-                                return mailService.createSignInfoEmail(
-                                                "EN",
-                                                authUser.getUsername(),
-                                                password,
-                                                authUser.getName(),
-                                                authUser.getEmail(),
-                                                r.get("appName"),
-                                                r.get("roleName"))
-                                        .onFailure().invoke(throwable -> logger.error("error sending email:"+throwable.getMessage(), throwable));
-                            });
+                    Uni<Map<String, String>> uniSave = saveUser(authUser, app, role)
+                            .map(r -> Map.of("appName", app.getName(), "roleName", role.getName(), "userId", r.getId()));
+
+                    if (app.getUsingFirebase()) {
+                        uniSave = uniSave.chain(r -> firebaseSignUp(userOnly.getEmail(), password, app.getFirebaseApiKey())
+                                .map(s -> r));
+                    }
+                    uniSave = uniSave.chain(r -> {
+                        if (StringUtils.isBlank(r.get("userId"))) throw new RuntimeException("Failed to save user!");
+
+                        logger.info("sending email to:" + authUser.getEmail());
+                        return mailService.createSignInfoEmail(
+                                        "EN",
+                                        authUser.getUsername(),
+                                        password,
+                                        authUser.getName(),
+                                        authUser.getEmail(),
+                                        r.get("appName"),
+                                        r.get("roleName"))
+                                .onFailure().invoke(throwable -> {
+                                    logger.error("error sending email:" + throwable.getMessage(), throwable);
+                                    throw new RuntimeException(throwable.getMessage(), throwable);
+                                })
+                                .map(x -> r);
+                    });
+                    return uniSave;
                 }));
     }
 
@@ -310,8 +345,15 @@ public class UserService {
                             if (app.getUsingFirebase()) {
                                 FirebaseAuthRequest updatePassRequest = new FirebaseAuthRequest();
                                 updatePassRequest.setPassword(request.getPassword());
-                                updatePassRequest.setIdToken();
-                                return firebaseAuthClient.updateProfile(updatePassRequest)
+                                updatePassRequest.setIdToken(principal.getFirebaseToken());
+
+                                logger.info("fb key:"+ app.getFirebaseApiKey());
+                                return firebaseAuthClient.updateProfile(updatePassRequest, app.getFirebaseApiKey())
+                                        .onFailure().invoke(throwable -> {
+                                            if (throwable instanceof ClientWebApplicationException clientWebApplicationException) {
+                                                logger.error("response:" + JsonUtils.toJson(clientWebApplicationException.getResponse()));
+                                            }
+                                        })
                                         .chain(res -> {
                                             result.setPasswordTextPlain(request.getPassword());
                                             result.setVerified(true);

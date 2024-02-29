@@ -24,11 +24,23 @@ public class UserPrincipal implements Principal {
     @JsonProperty("access_token")
     private final String accessToken;
 
+    @JsonProperty("firebase_token")
+    private final String firebaseToken;
+
     public UserPrincipal(UserOnly user, List<String> allowedRoles, String appCode, String accessToken) {
         this.user = user;
         this.allowedRoles = allowedRoles == null ? new ArrayList<>() : allowedRoles;
         this.appCode = appCode;
         this.accessToken = accessToken;
+        this.firebaseToken = null;
+    }
+
+    public UserPrincipal(UserOnly user, List<String> allowedRoles, String appCode, String accessToken, String firebaseToken) {
+        this.user = user;
+        this.allowedRoles = allowedRoles == null ? new ArrayList<>() : allowedRoles;
+        this.appCode = appCode;
+        this.accessToken = accessToken;
+        this.firebaseToken = firebaseToken;
     }
 
     @Override
@@ -53,12 +65,16 @@ public class UserPrincipal implements Principal {
         return accessToken;
     }
 
+
     @JsonIgnore
     @Override
     public String toString() {
         return "UserPrincipal{" +
                 "user=" + user +
                 ", allowedRoles=" + allowedRoles +
+                ", appCode='" + appCode + '\'' +
+                ", accessToken='" + accessToken + '\'' +
+                ", firebaseToken='" + firebaseToken + '\'' +
                 '}';
     }
 
@@ -72,7 +88,7 @@ public class UserPrincipal implements Principal {
 
     @Override
     public int hashCode() {
-        return Objects.hash(user, allowedRoles);
+        return Objects.hash(user, allowedRoles, accessToken, firebaseToken);
     }
 
     @JsonIgnore
@@ -100,5 +116,9 @@ public class UserPrincipal implements Principal {
             return usc.getUserPrincipal();
         }
         throw new IllegalArgumentException("The user principal is not secured");
+    }
+
+    public String getFirebaseToken() {
+        return firebaseToken;
     }
 }

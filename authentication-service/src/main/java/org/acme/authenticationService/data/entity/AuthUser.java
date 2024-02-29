@@ -71,7 +71,7 @@ public class AuthUser extends PanacheEntityBase implements Serializable {
     private List<AdditionalUserData> additionalUserData;
 
     @PrePersist
-    private void generateUUID() {
+    public void generateUUID() {
         if (id == null) {
             id = "USE_" + UUID.randomUUID().toString().toUpperCase();
         }

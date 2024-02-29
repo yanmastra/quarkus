@@ -1,12 +1,15 @@
 package com.acme.authorization.security;
 
 import com.acme.authorization.json.ResponseJson;
+import com.acme.authorization.utils.JsonUtils;
 import com.acme.authorization.utils.UriMatcher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.util.StringUtil;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.annotation.Priority;
+import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -34,6 +37,10 @@ public class AuthorizationFilter implements ContainerRequestFilter {
     String authorizationUrl;
     @ConfigProperty(name = "authorization.default-redirect", defaultValue = "")
     String defaultRedirect;
+
+    void onStart(@Observes StartupEvent event) {
+        JsonUtils.setObjectMapper(objectMapper);
+    }
 
     @Inject
     Logger logger;
@@ -72,7 +79,7 @@ public class AuthorizationFilter implements ContainerRequestFilter {
             }
         }
 
-        logger.info("Authorizing:"+context.getMethod()+" --> "+context.getUriInfo().getBaseUri().toString()+context.getUriInfo().getPath()+", Auth:"+(!StringUtil.isNullOrEmpty(auth))+", type:"+type+", public:"+isPublic(context, publicPath));
+        logger.debug("Validating:"+context.getMethod()+" --> "+context.getUriInfo().getRequestUri()+", Auth:"+(!StringUtil.isNullOrEmpty(auth))+", type:"+type+", public:"+isPublic(context, publicPath));
 
         if (!isPublic(context, publicPath) && StringUtil.isNullOrEmpty(auth)) {
             this.resolveFail(context, securityContext, new HttpException(HttpResponseStatus.BAD_REQUEST.code(), "Token not provided!"));
@@ -84,6 +91,7 @@ public class AuthorizationFilter implements ContainerRequestFilter {
                 if (auth.startsWith("Bearer ")) auth = auth.replace("Bearer ", "");
                 UserPrincipal principal = authorize(auth, type);
                 securityContext = new UserSecurityContext(principal);
+                logger.debug("Valid:"+context.getMethod()+" --> "+context.getUriInfo().getRequestUri()+" user:"+principal.getUser().getEmail());
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
                 if (!isPublic(context, publicPath)) {
@@ -150,7 +158,7 @@ public class AuthorizationFilter implements ContainerRequestFilter {
         }
 
         if (authorizerPrior instanceof BaseAuthorizer baseAuthorizer) {
-            return null;
+            return baseAuthorizer.authorize(accessToken);
         } else return authorizerPrior.authorize(accessToken);
     }
 

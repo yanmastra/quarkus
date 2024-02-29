@@ -9,10 +9,7 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.WebApplicationException;
 import org.acme.authenticationService.data.entity.*;
-import org.acme.authenticationService.firebase.FirebaseAuthClient;
-import org.acme.authenticationService.firebase.FirebaseAuthRequest;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.hibernate.reactive.mutiny.Mutiny;
 import org.jboss.logging.Logger;
@@ -35,8 +32,8 @@ public class SeedServices {
 
     @Inject
     ObjectMapper objectMapper;
-    @Inject
-    FirebaseAuthClient authClient;
+
+//    private FirebaseAuthClient authClient;
 
     void onStart(@Observes StartupEvent event) throws InterruptedException {
         logger.info("##############          SEEDING         #################");
@@ -49,7 +46,9 @@ public class SeedServices {
                     List<Permission> permissions = createPermission();
                     AuthUser authUser = createUser();
 
-                    Uni<?> result = session.find(Application.class, application.getCode());
+                    Uni<?> result = session.createQuery("from Application A where A.code=:code", Application.class)
+                            .setParameter("code", application.getCode())
+                            .getSingleResult();
 
 
                     result = result.onItem().invoke(resultX -> {
@@ -67,6 +66,7 @@ public class SeedServices {
                                     authUser.setVerified(true);
                                     entities.add(authUser);
 
+                                    authUser.generateUUID();
                                     UserApp userApp = new UserApp(authUser, application);
                                     entities.add(userApp);
                                 } else {
@@ -167,31 +167,31 @@ public class SeedServices {
                 .chain(r -> session.persistAll(userAppToBePersisted.toArray()).onFailure().invoke(throwable -> logger.error(throwable.getMessage(), throwable))))
                 .subscribe().with(r -> logger.info("SEEDING 3 COMPLETE"));
 
-        FirebaseAuthRequest request = new FirebaseAuthRequest();
-        request.setEmail("yanmastra59@gmail.com");
-        request.setPassword("Berantas");
-        Uni.createFrom().nullItem()
-                .chain(r -> authClient.signUp(request))
-                .onFailure().invoke(throwable -> {
-                    logger.error(throwable.getMessage(), throwable);
-                    if (throwable.getCause() != null && throwable.getCause() instanceof WebApplicationException eWeb) {
-                        logger.error("Error response:"+eWeb.getResponse().getEntity());
-                    }
-                })
-                .subscribe().with(r -> logger.info("SEEDING 4 COMPLETE"));
-        Uni.createFrom().nullItem()
-                .chain(r -> authClient.signIn(request))
-                .map(r -> {
-                    logger.info("response:"+JsonUtils.toJson(r));
-                    return r;
-                })
-                .onFailure().invoke(throwable -> {
-                    logger.error(throwable.getMessage(), throwable);
-                    if (throwable.getCause() != null && throwable.getCause() instanceof WebApplicationException eWeb) {
-                        logger.error("Error response:"+eWeb.getResponse().getEntity());
-                    }
-                })
-                .subscribe().with(r -> logger.info("SEEDING 5 COMPLETE"));
+//        FirebaseAuthRequest request = new FirebaseAuthRequest();
+//        request.setEmail("yanmastra59@gmail.com");
+//        request.setPassword("Berantas");
+//        Uni.createFrom().nullItem()
+//                .chain(r -> authClient.signUp(request))
+//                .onFailure().invoke(throwable -> {
+//                    logger.error(throwable.getMessage(), throwable);
+//                    if (throwable.getCause() != null && throwable.getCause() instanceof WebApplicationException eWeb) {
+//                        logger.error("Error response:"+eWeb.getResponse().getEntity());
+//                    }
+//                })
+//                .subscribe().with(r -> logger.info("SEEDING 4 COMPLETE"));
+//        Uni.createFrom().nullItem()
+//                .chain(r -> authClient.signIn(request))
+//                .map(r -> {
+//                    logger.info("response:"+JsonUtils.toJson(r));
+//                    return r;
+//                })
+//                .onFailure().invoke(throwable -> {
+//                    logger.error(throwable.getMessage(), throwable);
+//                    if (throwable.getCause() != null && throwable.getCause() instanceof WebApplicationException eWeb) {
+//                        logger.error("Error response:"+eWeb.getResponse().getEntity());
+//                    }
+//                })
+//                .subscribe().with(r -> logger.info("SEEDING 5 COMPLETE"));
     }
 
     public List<Permission> createPermission() {

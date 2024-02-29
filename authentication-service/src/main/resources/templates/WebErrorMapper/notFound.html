@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
+  <!-- IonIcons -->
+  <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
   <!-- Theme style -->
   <link rel="stylesheet" href="/dist/css/adminlte.min.css">
 </head>
@@ -26,9 +28,6 @@
       <li class="nav-item d-none d-sm-inline-block">
         <a href="/web/v1/home" class="nav-link">Home</a>
       </li>
-      <!--            <li class="nav-item d-none d-sm-inline-block">-->
-      <!--                <a href="#" class="nav-link">Contact</a>-->
-      <!--            </li>-->
     </ul>
 
     <!-- Right navbar links -->
@@ -63,7 +62,6 @@
 
       <li class="nav-item">
         <a class="nav-link" href="/web/v1/signout" role="button" data-slider-tooltip="Sign Out">
-          <!--                    <i class="fas fa-close"></i>-->
           <i class="fas fa-arrow-right"></i>
         </a>
       </li>
@@ -94,9 +92,6 @@
       <!-- Sidebar Menu -->
       <nav class="mt-2">
         <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-          <!-- Add icons to the links using the .nav-icon class
-               with font-awesome or any other icon font library -->
-
 
           <li class="nav-item">
             <a href="/web/v1/home" class="nav-link">
@@ -143,7 +138,7 @@
   <!-- Content Wrapper. Contains page content -->
   <div class="content-wrapper">
     <!-- Content Header (Page header) -->
-    <section class="content-header">
+    <div class="content-header">
       <div class="container-fluid">
         <div class="row mb-2">
           <div class="col-sm-6">
@@ -157,10 +152,10 @@
           </div>
         </div>
       </div><!-- /.container-fluid -->
-    </section>
+    </div>
 
     <!-- Main content -->
-    <section class="content">
+    <div class="content">
       <div class="error-page">
         {#if data.status < 500}
         <h2 class="headline text-warning">{data.status}</h2>
@@ -206,12 +201,15 @@
           {/if}
         </div>
         <!-- /.error-content -->
+
       </div>
       <!-- /.error-page -->
-    </section>
+
+    </div>
     <!-- /.content -->
   </div>
   <!-- /.content-wrapper -->
+
   <footer class="main-footer">
     <div class="float-right d-none d-sm-block">
       <b>Version</b> 3.2.0

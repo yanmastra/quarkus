@@ -13,14 +13,17 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 public class JsonUtils {
+    private static final Logger logger = Logger.getLogger(JsonUtils.class);
+
     private JsonUtils() {
     }
 
     private static ObjectMapper objectMapper;
-    private static Logger logger = Logger.getLogger(JsonUtils.class);
 
     public static ObjectMapper getObjectMapper() {
         if (objectMapper == null) {
@@ -31,8 +34,10 @@ public class JsonUtils {
     }
 
     public static void setObjectMapper(ObjectMapper objectMapper) {
-        JsonUtils.objectMapper = objectMapper;
-//        configure(JsonUtils.objectMapper);
+        if (JsonUtils.objectMapper == null) {
+            JsonUtils.objectMapper = objectMapper;
+            configure(JsonUtils.objectMapper);
+        }
     }
 
     private static void configure(ObjectMapper objectMapper) {
@@ -41,6 +46,9 @@ public class JsonUtils {
         objectMapper.configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
+
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        objectMapper.setDateFormat(dateFormat);
 
         SimpleModule module = new SimpleModule();
         module.addDeserializer(UserPrincipal.class, new UserPrincipalDeserializer());

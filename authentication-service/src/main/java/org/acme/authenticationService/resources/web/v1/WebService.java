@@ -20,7 +20,9 @@ import org.acme.authenticationService.dao.Permission;
 import org.acme.authenticationService.dao.RoleOnly;
 import org.acme.authenticationService.dao.UserOnly;
 import org.acme.authenticationService.dao.web.*;
-import org.acme.authenticationService.data.entity.*;
+import org.acme.authenticationService.data.entity.Application;
+import org.acme.authenticationService.data.entity.Role;
+import org.acme.authenticationService.data.entity.RolePermission;
 import org.acme.authenticationService.data.repository.*;
 import org.acme.authenticationService.resources.web.WebUtils;
 import org.acme.authenticationService.services.MailService;
@@ -30,8 +32,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -62,10 +62,19 @@ public class WebService {
     @Inject
     UserAppRepository userAppRepository;
 
+    private <E extends BaseModel> Uni<E> createReturnResponse(Uni<E> uni, UserPrincipal principal) {
+        return uni.chain(model -> appRepo.findById(principal.getAppCode()).map(app -> {
+            model.appName = app.getName();
+            return model;
+        })).map(model -> {
+            model.user = principal.getUser();
+            return model;
+        });
+    }
 
     @WithTransaction
     public Uni<Home> getHomePageData(UserPrincipal principal) {
-        return Uni.createFrom().item(principal)
+        Uni<Home> homeUni = Uni.createFrom().item(principal)
                 .chain(ctx -> {
                     if (ctx.getAppCode().equals("SYSTEM")) {
                         return appRepo.count().map(count -> {
@@ -111,6 +120,7 @@ public class WebService {
                                 }));
                     }
                 });
+        return createReturnResponse(homeUni, principal);
     }
 
     private PanacheQuery<Application> getApplicationQuery(UserPrincipal principal, String search) {
@@ -137,7 +147,7 @@ public class WebService {
     public Uni<ApplicationModel> getApplicationModel(int page, int size, String search, UserPrincipal principal) {
 
         final PanacheQuery<Application> query = getApplicationQuery(principal, search);
-        return query.page(Page.of(page - 1, size))
+        Uni<ApplicationModel>  applicationModelUni = query.page(Page.of(page - 1, size))
                 .list().map(result -> result.stream().map(ApplicationJson::fromDto).toList())
                 .chain(result -> {
                     ApplicationModel model = WebUtils.createModel(new ApplicationModel(), appName);
@@ -160,7 +170,12 @@ public class WebService {
                 .chain(model -> query.count().map(count -> {
                     model.totalData = count.intValue();
                     return model;
-                }));
+                }))
+                .map(model -> {
+                    model.user = principal.getUser();
+                    return model;
+                });
+        return createReturnResponse(applicationModelUni, principal);
     }
 
     @WithTransaction
@@ -187,7 +202,7 @@ public class WebService {
 
     @WithTransaction
     public Uni<ApplicationDetailModel> getApplicationDetailsModel(int page, int size, String appCode, String search, UserPrincipal userPrincipal) {
-        return appRepo.find("code = ?1 and deletedAt is null", appCode)
+        Uni<ApplicationDetailModel> applicationDetailModelUni = appRepo.find("code = ?1 and deletedAt is null", appCode)
                 .firstResult()
                 .map(application -> {
                     if (application == null) throw new HttpException(404, "Application:"+appCode+" not found!");
@@ -224,6 +239,7 @@ public class WebService {
                     }));
                     return modelUni;
                 });
+        return createReturnResponse(applicationDetailModelUni, userPrincipal);
     }
 
     @WithTransaction
@@ -272,7 +288,7 @@ public class WebService {
                             });
                 });
 
-        return resultUni.map(data -> {
+        resultUni = resultUni.map(data -> {
             data.roles.forEach((k, v) -> {
                 Map<String, List<String>> names = new HashMap<>();
                 v.forEach(rol -> {
@@ -283,6 +299,7 @@ public class WebService {
             });
             return data;
         });
+        return createReturnResponse(resultUni, principal);
     }
 
     @WithTransaction
@@ -312,7 +329,7 @@ public class WebService {
         applicationPanacheQuery = applicationPanacheQuery.filter("deletedRoleFilter", Parameters.with("isDeleted", false));
 
         final PanacheQuery<Role> query = applicationPanacheQuery;
-        return query.page(Page.of(page - 1, size))
+        Uni<RolesPageModel> rolesPageModelUni = query.page(Page.of(page - 1, size))
                 .list().map(result -> result.stream().map(RoleOnly::fromDTO).toList())
                 .chain(result -> query.count().map(count -> {
                     RolesPageModel model = WebUtils.createModel(new RolesPageModel(), appName);
@@ -324,12 +341,13 @@ public class WebService {
                     model.totalData = count.intValue();
                     return model;
                 }));
+        return createReturnResponse(rolesPageModelUni, principal);
     }
 
     @WithTransaction
     public Uni<RoleFormModel> createRoleForm(RoleFormModel baseModel, UserPrincipal principal) {
         final PanacheQuery<Application> applicationPanacheQuery = getApplicationQuery(principal, "");;
-        return applicationPanacheQuery.list()
+        Uni<RoleFormModel> roleFormModelUni = applicationPanacheQuery.list()
                 .map(listApp -> listApp.stream().map(
                         app -> {
                             ApplicationJson jsonApp = new ApplicationJson();
@@ -342,6 +360,7 @@ public class WebService {
                     baseModel.apps = result;
                     return baseModel;
                 });
+        return createReturnResponse(roleFormModelUni, principal);
     }
 
     @WithTransaction
@@ -368,7 +387,7 @@ public class WebService {
     @WithTransaction
     public Uni<RoleFormAddPermissionModel> createRoleFormAddPermission(String roleId, RoleFormAddPermissionModel model, UserPrincipal principal) {
         if (StringUtils.isBlank(roleId)) throw new IllegalArgumentException("{role_id} can't be empty in path \"web/v1/roles/{role_id}/add_permission\"");
-        return roleRepo.findById(roleId)
+        Uni<RoleFormAddPermissionModel> roleFormAddPermissionModelUni = roleRepo.findById(roleId)
                 .chain(role -> permissionRepo.findByAppCode(role.getAppCode()).map(permissions -> {
                             model.role = RoleOnly.fromDTO(role);
                             model.permissions = permissions.stream()
@@ -381,6 +400,7 @@ public class WebService {
                                     .collect(Collectors.toMap(com.acme.authorization.json.Permission::getId, permission -> permission));
                             return model;
                 }));
+        return createReturnResponse(roleFormAddPermissionModelUni, principal);
     }
 
     @WithTransaction
@@ -403,7 +423,7 @@ public class WebService {
         permissionPanacheQuery = permissionPanacheQuery.filter("deletedPermissionFilter", Parameters.with("isDeleted", false));
 
         final PanacheQuery<org.acme.authenticationService.data.entity.Permission> query = permissionPanacheQuery;
-        return query.page(Page.of(page - 1, size))
+        Uni<PermissionPageModel> permissionPageModelUni = query.page(Page.of(page - 1, size))
                 .list().map(result -> result.stream().map(Permission::fromDTO).toList())
                 .chain(result -> query.count().map(count -> {
                     PermissionPageModel model = WebUtils.createModel(new PermissionPageModel(), appName);
@@ -415,12 +435,13 @@ public class WebService {
                     model.totalData = count.intValue();
                     return model;
                 }));
+        return createReturnResponse(permissionPageModelUni, principal);
     }
 
     @WithTransaction
     public Uni<PermissionFormModel> createPermissionForm(PermissionFormModel baseModel, UserPrincipal principal) {
         final PanacheQuery<Application> applicationPanacheQuery = getApplicationQuery(principal, "");;
-        return applicationPanacheQuery.list()
+        Uni<PermissionFormModel> permissionPageModelUni = applicationPanacheQuery.list()
                 .map(listApp -> listApp.stream().map(
                         app -> {
                             ApplicationJson jsonApp = new ApplicationJson();
@@ -433,6 +454,7 @@ public class WebService {
                     baseModel.apps = result;
                     return baseModel;
                 });
+        return createReturnResponse(permissionPageModelUni, principal);
     }
 
     @WithTransaction

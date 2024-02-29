@@ -59,4 +59,6 @@ public class FirebaseAuthRequest {
     public boolean isReturnSecureToken() {
         return true;
     }
+
+
 }

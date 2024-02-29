@@ -7,62 +7,64 @@ import org.jboss.logging.Logger;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.time.Instant;
+import java.util.*;
 
 public class KeyValueCacheUtils {
-    private static final String CACHE_DIR = "/.cache_v1";
+    private static final String CACHE_DIR = "/.cache_v2";
 
     private static Logger logger = Logger.getLogger(KeyValueCacheUtils.class.getName());
 
-    public static synchronized void putCache(String cacheName, String key, String value){
-        saveCache(cacheName, key, value, CacheUpdateMode.ADD);
-    }
-
-    public static synchronized void removeCache(String cacheName, String key) {
-        saveCache(cacheName, key, "", CacheUpdateMode.REMOVE);
+    public static synchronized void putCache(String cacheName, String key, String value, CacheUpdateMode cacheUpdateMode){
+        saveCache(cacheName, key, value);
     }
 
     public static synchronized void saveCache(String cacheName, String key, String value, CacheUpdateMode cacheUpdateMode) {
-//        if (StringUtil.isNullOrEmpty(key) || key.contains("=") || value.contains("=") || cacheUpdateMode == null)
-//            throw new IllegalArgumentException("key or value contain not supported character!, (\"=\",\";\")");
-        if (StringUtil.isNullOrEmpty(key) || cacheUpdateMode == null)
-            throw new IllegalArgumentException("key can't be empty and cacheUpdateMode can't be null");
+        saveCache(cacheName, key, value);
+    }
+
+    public static synchronized void removeCache(String cacheName, String key) {
+        saveCache(cacheName, key, "");
+    }
+
+    public static synchronized void saveCache(String cacheName, String key, String value) {
+        if (StringUtil.isNullOrEmpty(key))
+            throw new IllegalArgumentException("key can't be empty");
 
         if (StringUtil.isNullOrEmpty(value)) value = "";
 
         Map<String, String> mapLine = Map.of("key", key, "value", value);
-        String sKey = JsonUtils.toJson(Map.of("key", key));
-        sKey = sKey.substring(1, sKey.length()-1);
         String sLine = JsonUtils.toJson(mapLine);
 
         File file = getCacheFileName(cacheName);
         StringBuilder cache = new StringBuilder();
+        Set<String> usedKey = new HashSet<>();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
             String line;
             boolean hasReplaced = false;
             while ((line = reader.readLine()) != null) {
-                if (cacheUpdateMode == CacheUpdateMode.REPLACE || cacheUpdateMode == CacheUpdateMode.ADD) {
-                    if (!StringUtil.isNullOrEmpty(line) && line.startsWith(key + '=')) {
-//                        cache.append(key).append('=').append(value);
+                if (StringUtil.isNullOrEmpty(line)) continue;
+                Map<String, String> mapLine1 = JsonUtils.fromJson(line, new TypeReference<>() {
+                });
+                String cKey = mapLine1.get("key");
+                if (usedKey.contains(cKey)) continue;
+                usedKey.add(cKey);
+
+                if(cKey.equals(key)) {
+                    if (!StringUtil.isNullOrEmpty(value)) {
                         cache.append(sLine);
-                        hasReplaced = true;
-                        cache.append('\n');
-                    } else {
-                        cache.append(line);
                         cache.append('\n');
                     }
-                } else if (cacheUpdateMode == CacheUpdateMode.REMOVE) {
-                    if (!(!StringUtil.isNullOrEmpty(line) && line.contains(sKey))) {
-                        cache.append(line);
-                        cache.append('\n');
-                    }
+                    hasReplaced = true;
+                } else {
+                    cache.append(line);
+                    cache.append('\n');
                 }
             }
 
-            if (!hasReplaced && cacheUpdateMode == CacheUpdateMode.ADD) {
+            if (!hasReplaced) {
                 cache.append(sLine);
+                cache.append('\n');
             }
         } catch (IOException ioe) {
             logger.error(ioe.getMessage(), ioe);
@@ -87,9 +89,6 @@ public class KeyValueCacheUtils {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (!StringUtil.isNullOrEmpty(line) && line.contains(sKey)) {
-//                    String[] lines = line.split("=");
-//                    reader.close();
-//                    return lines[1];
                     Map<String, String> mapLine = JsonUtils.fromJson(line, new TypeReference<>() {
                     });
                     return mapLine.get("value");
@@ -166,4 +165,38 @@ public class KeyValueCacheUtils {
     public static String showHiddenString(String s) {
         return new String(Base64.getDecoder().decode(s));
     }
+
+    public static void main(String[] args) {
+        test();
+    }
+
+    public static void test() {
+        Random random = new Random();
+        long maxWrite = 0L;
+        long maxRead = 0L;
+        String longestValue = null;
+        for (int i = 0; i < 10000; i++) {
+            String cacheName = "TEST_CACHE_3";
+            String key = UUID.randomUUID().toString();
+            String val = random.nextInt(99999999)+"";
+            String sValue = JsonUtils.toJson(Map.of(key, val));
+
+            Instant instant = Instant.now();
+            saveCache(cacheName, key, sValue);
+            long take = Instant.now().toEpochMilli() - instant.toEpochMilli();
+            if (maxWrite < take) maxWrite = take;
+
+            instant = Instant.now();
+            String value = findCache(cacheName, key);
+            take = Instant.now().toEpochMilli() - instant.toEpochMilli();
+            if (maxRead < take) {
+                maxRead = take;
+                longestValue = value;
+            }
+        }
+        System.out.println("max write take time:"+maxWrite+"ms");
+        System.out.println("max read take time:"+maxRead+"ms, val:"+longestValue);
+    }
+
+
 }

@@ -1,7 +1,7 @@
 package org.acme.authenticationService.data.entity;
 
-import com.acme.authorization.utils.Constants;
 import com.acme.authorization.utils.PasswordGenerator;
+import com.acme.authorization.utils.Constants;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
@@ -21,6 +21,10 @@ import java.util.stream.Stream;
 @Filter(name = "deletedAppFilter", condition = "deleted_at is not null = :isDeleted")
 public class Application extends PanacheEntityBase implements Serializable {
     @Id
+    @Column(length = 36, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
+
     @Column(length = 36, nullable = false)
     private String code;
     @Column(length = 128)
@@ -80,6 +84,14 @@ public class Application extends PanacheEntityBase implements Serializable {
         this.code = code;
         this.name = name;
         this.description = description;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getCode() {
@@ -215,7 +227,7 @@ public class Application extends PanacheEntityBase implements Serializable {
     }
 
     public Boolean getUsingFirebase() {
-        return isUsingFirebase;
+        return isUsingFirebase != null && isUsingFirebase;
     }
 
     public void setUsingFirebase(Boolean usingFirebase) {

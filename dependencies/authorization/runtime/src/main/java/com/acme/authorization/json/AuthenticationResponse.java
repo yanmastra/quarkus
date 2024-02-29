@@ -8,6 +8,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class AuthenticationResponse<E extends User> {
     @JsonProperty("access_token")
     public String accessToken;
+    @JsonProperty("firebase_token")
+    public String firebaseToken;
     @JsonProperty("refresh_token")
     public String refreshToken;
 
@@ -19,6 +21,13 @@ public class AuthenticationResponse<E extends User> {
 
     public AuthenticationResponse(String accessToken, String refreshToken, E user) {
         this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.user = user;
+    }
+
+    public AuthenticationResponse(String accessToken, String firebaseToken, String refreshToken, E user) {
+        this.accessToken = accessToken;
+        this.firebaseToken = firebaseToken;
         this.refreshToken = refreshToken;
         this.user = user;
     }

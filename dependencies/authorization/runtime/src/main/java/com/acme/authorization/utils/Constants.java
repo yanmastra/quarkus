@@ -9,4 +9,6 @@ public interface Constants {
     String REGEX_SPECIAL_CHARACTER="[$&+,:;=\\\\?@#|/'<>.^*()%!-]";
     String REGEX_ANY_SPACE="\\s+";
     String KEY_CLIENT_ID = "client_id";
+    String FIREBASE_TOKEN = "firebase_token";
+    String FIREBASE_REFRESH_TOKEN = "firebase_refresh_token";
 }

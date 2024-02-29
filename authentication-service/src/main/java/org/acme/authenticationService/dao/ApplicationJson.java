@@ -2,8 +2,8 @@ package org.acme.authenticationService.dao;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.Column;
 import org.acme.authenticationService.data.entity.Application;
+import org.apache.commons.lang3.StringUtils;
 import org.jboss.resteasy.reactive.RestForm;
 
 import java.util.Arrays;
@@ -46,6 +46,10 @@ public class ApplicationJson {
     @JsonProperty("adds_user_data_fields")
     private Set<String> additionalUserDataFields;
 
+    @RestForm("firebase_api_key")
+    @JsonProperty("firebase_api_key")
+    private String firebaseApiKey;
+
     public static ApplicationJson fromDto(Application application) {
         if (application == null) return null;
         ApplicationJson app = new ApplicationJson(
@@ -60,18 +64,31 @@ public class ApplicationJson {
         );
 
         app.setAdditionalUserDataFields(new HashSet<>(Arrays.asList(application.getAdditionalUserDataFields().split(","))));
+        if (StringUtils.isNotBlank(application.getFirebaseApiKey())) {
+            app.setFirebaseApiKey(application.getFirebaseApiKey());
+        } else {
+            app.setFirebaseApiKey(null);
+        }
         return app;
     }
 
     public Application toDto() {
         Application application = new Application(getCode(), getName(), getDescription());
-        getAdditionalUserDataFields().forEach(application::addAdditionalUserDataField);
+        if (getAdditionalUserDataFields() != null) {
+            getAdditionalUserDataFields().forEach(application::addAdditionalUserDataField);
+        }
         application.setCreatedBy(getCreatedBy());
         application.setUpdatedBy(getUpdatedBy());
         application.setDeletedBy(getDeletedBy());
         application.setCreatedAt(getCreatedAt());
         application.setUpdatedAt(getUpdatedAt());
         application.setDeletedAt(getDeletedAt());
+        if (StringUtils.isNotBlank(getFirebaseApiKey())) {
+            application.setUsingFirebase(true);
+            application.setFirebaseApiKey(getFirebaseApiKey());
+        } else {
+            application.setUsingFirebase(false);
+        }
         return application;
     }
 
@@ -191,6 +208,14 @@ public class ApplicationJson {
 
     public void setAdditionalUserDataFields(Set<String> additionalUserDataFields) {
         this.additionalUserDataFields = additionalUserDataFields;
+    }
+
+    public String getFirebaseApiKey() {
+        return firebaseApiKey;
+    }
+
+    public void setFirebaseApiKey(String firebaseApiKey) {
+        this.firebaseApiKey = firebaseApiKey;
     }
 
     @Override

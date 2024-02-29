@@ -24,7 +24,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.jboss.logging.Logger;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
 
 @ApplicationScoped
 public class RegisterService {

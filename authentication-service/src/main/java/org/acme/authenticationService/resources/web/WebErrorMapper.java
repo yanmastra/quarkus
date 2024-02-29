@@ -39,13 +39,14 @@ public class WebErrorMapper implements HtmlErrorMapper {
         String messages = e.getMessage();
         if (e instanceof HttpException httpException) {
             status = httpException.getStatusCode();
+            messages = httpException.getPayload();
         } else if (e instanceof WebApplicationException webApplicationException) {
             status = webApplicationException.getResponse().getStatus();
         } else if (e instanceof SecurityException) {
             status = 403;
         }
 
-        logger.warn("Handling error:"+e.getMessage(), e);
+        logger.error("Handling error:"+messages, e);
         if (e.getCause() != null) {
             messages = e.getCause().getMessage();
             logger.error(e.getCause().getMessage(), e.getCause());
@@ -62,7 +63,9 @@ public class WebErrorMapper implements HtmlErrorMapper {
         }
 
         try {
-            error.user = (UserPrincipal.valueOf(requestContext.getSecurityContext().getUserPrincipal())).getUser();
+            UserPrincipal principal = UserPrincipal.valueOf(requestContext.getSecurityContext().getUserPrincipal());
+            error.user = principal.getUser();
+            error.appName = principal.getAppCode();
         } catch (Exception ex) {
             logger.error(ex.getMessage(), ex);
         }

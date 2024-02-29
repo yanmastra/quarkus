@@ -1,6 +1,5 @@
 package com.acme.authorization.provider;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.runtime.util.StringUtil;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.enterprise.inject.Instance;
@@ -19,6 +18,7 @@ import org.jboss.logging.Logger;
 import org.jboss.resteasy.reactive.server.spi.AsyncExceptionMapperContext;
 import org.jboss.resteasy.reactive.server.spi.ResteasyReactiveAsyncExceptionMapper;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 @Singleton
@@ -70,7 +70,8 @@ public class ErrorMapper implements ResteasyReactiveAsyncExceptionMapper<Excepti
                     .build());
         } else {
             try (Stream<HtmlErrorMapper> errorMapperStream = htmlErrorMappers.stream()) {
-                errorMapperStream.findFirst().ifPresent(htmlErrorMapper -> context.setResponse(htmlErrorMapper.getResponse(exception)));
+                Optional<HtmlErrorMapper> errorMapper = errorMapperStream.findFirst();
+                errorMapper.ifPresent(htmlErrorMapper -> context.setResponse(htmlErrorMapper.getResponse(exception)));
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
             }
