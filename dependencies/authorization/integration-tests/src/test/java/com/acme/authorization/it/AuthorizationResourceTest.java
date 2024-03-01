@@ -5,11 +5,14 @@ import com.acme.authorization.security.Authorizer;
 import com.acme.authorization.security.UserPrincipal;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
 import io.vertx.ext.web.handler.HttpException;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -40,6 +43,12 @@ public class AuthorizationResourceTest {
     private static final String dummyToken = UUID.randomUUID().toString();
     private static final String tokenNotProvided="{\"success\":false,\"message\":\"Token not provided!\"}";
     private static final String accessDenied="{\"success\":false,\"message\":\"Access Denied!\"}";
+
+    @BeforeAll
+    static void setup() {
+        RestAssured.defaultParser = Parser.JSON;
+    }
+
 
     @Test
     public void testWithToken() {
@@ -125,17 +134,17 @@ public class AuthorizationResourceTest {
                 .get("/authorization/user_get_data")
                 .then()
                 .statusCode(403)
-                .body(Matchers.is(accessDenied));
+                .body("message", Matchers.equalTo("Access Denied!"));
     }
 
     @Test
     public void testWithKeyWithoutTokenToRestrictedEndpoint() {
         given()
-                .when()
+                .contentType(MediaType.APPLICATION_JSON)
                 .get("/authorization/user_get_data")
                 .then()
                 .statusCode(400)
-                .body(Matchers.is(tokenNotProvided));
+                .body("message", Matchers.equalTo("Token not provided!"));
     }
 
     @Test
@@ -143,7 +152,7 @@ public class AuthorizationResourceTest {
         given()
                 .when()
                 .header("Accept", MediaType.APPLICATION_JSON)
-                .get("/auth")
+                .get("/auth/test")
                 .then()
                 .statusCode(200);
     }

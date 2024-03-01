@@ -52,6 +52,7 @@ public class AuthorizationResource {
     @GET
     @Path("user_get_data")
     @RolesAllowed({"GET_DATA"})
+    @Produces(MediaType.APPLICATION_JSON)
     public Uni<Response> user1(@Context SecurityContext context) {
         return Uni.createFrom().item(Response.ok(context.getUserPrincipal()).build());
     }
