@@ -180,10 +180,8 @@ public class AuthorizationFilter implements ContainerRequestFilter {
     private boolean isPublic(String path, String publicPathMatcher) {
         if (StringUtil.isNullOrEmpty(publicPathMatcher))
             throw new RuntimeException("Parameter 'publicPathMatcher' is not specified!");
-
         if (path.equals(publicPathMatcher)) return true;
         if ("/*".equals(publicPathMatcher)) return true;
-        String[] publicPaths = publicPathMatcher.split(",");
-        return UriMatcher.isMatch(publicPaths, path);
+        return UriMatcher.isMatch(publicPathMatcher, path);
     }
 }

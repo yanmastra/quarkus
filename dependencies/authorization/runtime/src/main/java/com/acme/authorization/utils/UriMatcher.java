@@ -18,7 +18,7 @@ public class UriMatcher {
     public static Matcher getMatcher(String pathPattern) {
         try {
             if (matcherMap == null) matcherMap = new HashMap<>();
-            if (!matcherMap.containsKey(pathPattern)) matcherMap.put(pathPattern, new Matcher("glob:"+pathPattern));
+            if (!matcherMap.containsKey(pathPattern)) matcherMap.put(pathPattern, new Matcher(pathPattern));
             return matcherMap.get(pathPattern);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Pattern '%s' is not supported".formatted(pathPattern), e);
@@ -27,13 +27,19 @@ public class UriMatcher {
 
     public static boolean isMatch(String pathPattern, String path) {
         if (StringUtil.isNullOrEmpty(pathPattern)) return false;
-        return UriMatcher.getMatcher(pathPattern).isMatch(path);
+        if (pathPattern.contains(",")) {
+            String[] patterns = pathPattern.split(",");
+            return isMatch(patterns, path);
+        } else
+            return UriMatcher.getMatcher(pathPattern).isMatch(path);
     }
 
     public static boolean isMatch(String[] pathPattern, String path) {
         if (pathPattern == null) return false;
         for (String pattern: pathPattern) {
-            if (isMatch(pattern, path)) return true;
+            if (UriMatcher.getMatcher(pattern).isMatch(path)) {
+                return true;
+            }
         }
         return false;
     }
@@ -42,7 +48,7 @@ public class UriMatcher {
         private final PathMatcher matcher;
 
         public Matcher(String pathPattern) {
-            matcher = FileSystems.getDefault().getPathMatcher(pathPattern);
+            matcher = FileSystems.getDefault().getPathMatcher("glob:"+pathPattern);
         }
 
         public boolean isMatch(String path) {

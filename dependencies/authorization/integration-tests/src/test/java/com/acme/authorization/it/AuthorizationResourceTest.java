@@ -142,6 +142,7 @@ public class AuthorizationResourceTest {
     public void testWithKeyWithoutTokenToPublicEndpoint() {
         given()
                 .when()
+                .header("Accept", MediaType.APPLICATION_JSON)
                 .get("/auth")
                 .then()
                 .statusCode(200);

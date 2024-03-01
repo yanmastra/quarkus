@@ -9,7 +9,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 
-@Path("/auth")
+@Path("/auth/test")
 public class AuthResource {
 
     @GET
