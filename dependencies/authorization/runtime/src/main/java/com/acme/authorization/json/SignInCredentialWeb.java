@@ -1,10 +1,11 @@
 package com.acme.authorization.json;
 
+import org.acme.authorization.json.Credential;
 import org.jboss.resteasy.reactive.RestForm;
 
 import java.util.Date;
 
-public class SignInCredentialWeb implements Credential{
+public class SignInCredentialWeb implements Credential {
     @RestForm("username")
     private String username;
     @RestForm("password")

@@ -6,7 +6,7 @@ import org.acme.authenticationService.data.entity.AuthUser;
 import java.io.Serializable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public abstract class User extends com.acme.authorization.json.User implements Serializable {
+public abstract class User extends org.acme.authorization.json.User implements Serializable {
 
     public abstract AuthUser toDto();
 

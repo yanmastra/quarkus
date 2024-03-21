@@ -392,12 +392,12 @@ public class WebService {
                             model.role = RoleOnly.fromDTO(role);
                             model.permissions = permissions.stream()
                                     .map(Permission::fromDTO)
-                                    .collect(Collectors.toMap(com.acme.authorization.json.Permission::getId, permission -> permission));
+                                    .collect(Collectors.toMap(org.acme.authorization.json::getId, permission -> permission));
 
                             model.rolePermissions = role.getPermissions().stream()
                                     .sorted((o1, o2) -> o2.getPermission().getCreatedAt().compareTo(o1.getPermission().getCreatedAt()))
                                     .map(rolePermission -> Permission.fromDTO(rolePermission.getPermission()))
-                                    .collect(Collectors.toMap(com.acme.authorization.json.Permission::getId, permission -> permission));
+                                    .collect(Collectors.toMap(org.acme.authorization.json::getId, permission -> permission));
                             return model;
                 }));
         return createReturnResponse(roleFormAddPermissionModelUni, principal);

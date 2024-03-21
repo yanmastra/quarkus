@@ -1,8 +1,8 @@
 package org.acme.authenticationService.resources.api.v1;
 
-import com.acme.authorization.json.AuthenticationResponse;
-import com.acme.authorization.json.ResponseJson;
-import com.acme.authorization.json.SignInCredential;
+import org.acme.authorization.json.AuthenticationResponse;
+import org.acme.authorization.json.ResponseJson;
+import org.acme.authorization.json.SignInCredential;
 import com.acme.authorization.json.SignInCredentialWeb;
 import com.acme.authorization.security.UserPrincipal;
 import io.quarkus.runtime.util.StringUtil;

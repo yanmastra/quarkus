@@ -42,9 +42,9 @@
     </dependency>
 
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>3.12.0</version>
+      <groupId>org.acme.authorization</groupId>
+      <artifactId>json</artifactId>
+      <version>0.2.0</version>
     </dependency>
 
   </dependencies>

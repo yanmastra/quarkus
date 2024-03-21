@@ -1,4 +1,4 @@
-package com.acme.authorization.json;
+package org.acme.authorization.json;
 
 import java.util.Date;
 

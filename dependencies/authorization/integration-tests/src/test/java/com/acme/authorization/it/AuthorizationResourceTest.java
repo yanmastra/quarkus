@@ -1,6 +1,6 @@
 package com.acme.authorization.it;
 
-import com.acme.authorization.json.UserOnly;
+import org.acme.authorization.json.UserOnly;
 import com.acme.authorization.security.Authorizer;
 import com.acme.authorization.security.UserPrincipal;
 import io.netty.handler.codec.http.HttpResponseStatus;

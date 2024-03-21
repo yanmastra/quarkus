@@ -1,9 +1,9 @@
-package com.acme.authorization.json;
+package org.acme.authorization.json;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.quarkus.runtime.util.StringUtil;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -150,7 +150,7 @@ public abstract class User implements Serializable {
     }
 
     public String getAdditionalValue(String fieldCode) {
-        if (StringUtil.isNullOrEmpty(fieldCode)) throw new IllegalArgumentException(getClass().getName()+".getAdditionalValue(String fieldCode), 'fieldCode' can't be empty!");
+        if (StringUtils.isEmpty(fieldCode)) throw new IllegalArgumentException(getClass().getName()+".getAdditionalValue(String fieldCode), 'fieldCode' can't be empty!");
         String[] appAndField = fieldCode.split("__");
         if (appAndField.length == 1) {
             return getAdditionalData().entrySet().stream()

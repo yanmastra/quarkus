@@ -1,6 +1,6 @@
 package org.acme.authenticationService.resources.api.v1;
 
-import com.acme.authorization.json.ResponseJson;
+import org.acme.authorization.json.ResponseJson;
 import com.acme.authorization.security.UserPrincipal;
 import com.acme.authorization.security.UserSecurityContext;
 import com.acme.authorization.utils.ValidationUtils;
@@ -109,7 +109,7 @@ public class UserResource {
     public Uni<ResponseJson<UserOnly>> getProfile(@Context SecurityContext context) {
         return Uni.createFrom().item(UserPrincipal.valueOf(context))
                 .map(principal -> {
-                    com.acme.authorization.json.UserOnly userOnly = UserPrincipal.valueOf(context).getUser();
+                    org.acme.authorization.json.UserOnly userOnly = UserPrincipal.valueOf(context).getUser();
                     ResponseJson<UserOnly> responseJson = new ResponseJson<>(true, null);
                     responseJson.setData(new UserOnly(userOnly));
                     responseJson.getData().setRolesIds(principal.getUser().getRolesIds());

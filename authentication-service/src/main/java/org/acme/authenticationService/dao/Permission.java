@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.io.Serializable;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Permission extends com.acme.authorization.json.Permission implements Serializable {
+public class Permission extends org.acme.authorization.json.Permission implements Serializable {
 
     @JsonIgnore
     public org.acme.authenticationService.data.entity.Permission toDTO() {

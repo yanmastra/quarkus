@@ -4,6 +4,7 @@ import io.quarkus.mailer.Mail;
 import io.quarkus.mailer.MailTemplate;
 import io.quarkus.mailer.reactive.ReactiveMailer;
 import io.quarkus.qute.CheckedTemplate;
+import io.smallrye.jwt.util.ResourceUtils;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -11,6 +12,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 
 @ApplicationScoped
@@ -25,6 +28,8 @@ public class MailService {
     String mailerFrom;
     @ConfigProperty(name = "company.main.logo_file_path", defaultValue = "")
     String companyMainLogo;
+
+    @Inject S3UrlResolver resolver;
 
     public static class MailMessageTemplateData {
         public String beginningMessage;
@@ -141,6 +146,13 @@ public class MailService {
         Mail mail = Mail.withHtml(userEmail, subject, content)
                     .setFrom(mailerFrom).addReplyTo(mailerFrom)
                     .addInlineAttachment("mylogo.png", new File(companyMainLogo), "image/png","<mylogo@quarkus.io>");
+
+        try (InputStream is = ResourceUtils.getResourceStream("http://localhost", resolver)) {
+            mail.addAttachment("pdf_file", is.readAllBytes(),  "*/*");
+        } catch (IOException exception) {
+            logger.error(exception.getMessage(), exception);
+        }
+
         return mailer.send(mail);
     }
 

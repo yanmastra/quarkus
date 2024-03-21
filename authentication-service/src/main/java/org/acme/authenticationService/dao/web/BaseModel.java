@@ -1,7 +1,7 @@
 package org.acme.authenticationService.dao.web;
 
 
-import com.acme.authorization.json.UserOnly;
+import org.acme.authorization.json.UserOnly;
 
 public class BaseModel {
 

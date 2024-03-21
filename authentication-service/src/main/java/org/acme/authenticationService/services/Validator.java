@@ -1,6 +1,6 @@
 package org.acme.authenticationService.services;
 
-import com.acme.authorization.json.Permission;
+import org.acme.authorization.json;
 import com.acme.authorization.json.Role;
 
 public interface Validator {

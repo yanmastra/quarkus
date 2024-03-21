@@ -1,7 +1,7 @@
 package org.acme.authenticationService.services;
 
-import com.acme.authorization.json.AuthenticationResponse;
-import com.acme.authorization.json.Credential;
+import org.acme.authorization.json.AuthenticationResponse;
+import org.acme.authorization.json.Credential;
 import com.acme.authorization.security.UserPrincipal;
 import com.acme.authorization.utils.DateTimeUtils;
 import com.acme.authorization.utils.PasswordGenerator;

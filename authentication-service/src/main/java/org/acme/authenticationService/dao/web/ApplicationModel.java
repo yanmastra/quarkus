@@ -1,6 +1,6 @@
 package org.acme.authenticationService.dao.web;
 
-import com.acme.authorization.json.UserOnly;
+import org.acme.authorization.json.UserOnly;
 import org.acme.authenticationService.dao.ApplicationJson;
 
 import java.util.HashMap;

@@ -1,6 +1,6 @@
 package org.acme.authenticationService.services;
 
-import com.acme.authorization.json.ResponseJson;
+import org.acme.authorization.json.ResponseJson;
 import com.acme.authorization.security.UserPrincipal;
 import com.acme.authorization.utils.JsonUtils;
 import com.acme.authorization.utils.PasswordGenerator;

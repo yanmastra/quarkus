@@ -1,6 +1,6 @@
 package com.acme.authorization.security;
 
-import com.acme.authorization.json.ResponseJson;
+import org.acme.authorization.json.ResponseJson;
 import com.acme.authorization.utils.UrlUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

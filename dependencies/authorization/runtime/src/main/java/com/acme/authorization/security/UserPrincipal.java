@@ -1,6 +1,6 @@
 package com.acme.authorization.security;
 
-import com.acme.authorization.json.UserOnly;
+import org.acme.authorization.json.UserOnly;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;

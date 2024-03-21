@@ -1,11 +1,10 @@
 package org.acme.authenticationService.dao;
 
-import com.acme.authorization.json.AdditionalUserDataJson;
+import org.acme.authorization.json.AdditionalUserDataJson;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.acme.authenticationService.data.entity.AdditionalUserData;
 import org.acme.authenticationService.data.entity.AuthUser;
-import org.acme.authenticationService.data.entity.UserRole;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -19,7 +18,7 @@ public class UserOnly extends User {
         super(id, username, email, name);
     }
 
-    public UserOnly(com.acme.authorization.json.UserOnly general) {
+    public UserOnly(org.acme.authorization.json.UserOnly general) {
         setId(general.getId());
         setEmail(general.getEmail());
         setUsername(general.getUsername());

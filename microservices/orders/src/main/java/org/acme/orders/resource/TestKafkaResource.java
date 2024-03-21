@@ -1,6 +1,6 @@
 package org.acme.orders.resource;
 
-import com.acme.authorization.json.ResponseJson;
+import org.acme.authorization.json.ResponseJson;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smallrye.mutiny.Uni;
 import jakarta.inject.Inject;

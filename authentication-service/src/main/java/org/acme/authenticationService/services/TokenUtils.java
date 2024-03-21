@@ -1,7 +1,7 @@
 package org.acme.authenticationService.services;
 
 import com.acme.authorization.json.AuthenticationResponse;
-import com.acme.authorization.json.UserOnly;
+import org.acme.authorization.json.UserOnly;
 import com.acme.authorization.security.UserPrincipal;
 import com.acme.authorization.utils.*;
 import com.fasterxml.jackson.databind.ObjectMapper;

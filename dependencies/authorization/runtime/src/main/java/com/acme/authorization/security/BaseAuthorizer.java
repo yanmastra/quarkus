@@ -1,6 +1,6 @@
 package com.acme.authorization.security;
 
-import com.acme.authorization.json.UserOnly;
+import org.acme.authorization.json.UserOnly;
 import com.acme.authorization.utils.Constants;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.HttpResponseStatus;
